@@ -1,0 +1,41 @@
+{
+  "project": "Hazeon HMS",
+  "version": "1.0.0",
+  "initialized": "2026-03-23",
+  "currentPhase": 2,
+  "totalPhases": 9,
+  "workflow": {
+    "commitStyle": "atomic",
+    "commitFormat": "feat({phase}-{task}): {description}",
+    "contextBudget": 0.5,
+    "waveExecution": true
+  },
+  "stack": {
+    "framework": "next@14",
+    "language": "typescript",
+    "styling": "tailwindcss + shadcn/ui",
+    "database": "supabase",
+    "auth": "supabase-auth",
+    "email": "resend",
+    "deployment": "vercel"
+  },
+  "design": {
+    "theme": "light",
+    "font": "Inter",
+    "primaryColor": "#2563EB",
+    "textPrimary": "#0F172A",
+    "surface": "#F8FAFC",
+    "border": "#E2E8F0"
+  },
+  "phases": [
+    { "number": 1, "name": "Foundation", "status": "complete" },
+    { "number": 2, "name": "Hostel Module", "status": "pending" },
+    { "number": 3, "name": "Fee Management", "status": "pending" },
+    { "number": 4, "name": "Library Module", "status": "pending" },
+    { "number": 5, "name": "Mess Module", "status": "pending" },
+    { "number": 6, "name": "Student Portal", "status": "pending" },
+    { "number": 7, "name": "Complaints & Expenses", "status": "pending" },
+    { "number": 8, "name": "Dashboard & Email", "status": "pending" },
+    { "number": 9, "name": "Settings, Import/Export & Polish", "status": "pending" }
+  ]
+}
