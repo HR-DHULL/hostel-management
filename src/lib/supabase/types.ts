@@ -38,8 +38,11 @@ export type Database = {
         Row: {
           id: string
           inst_name: string
+          inst_address: string | null
+          inst_phone: string | null
           admin_email: string | null
           wa_template: string | null
+          wa_template_fee_reminder: string | null
           reminder_days: number
           reminder_hour: number
           created_at: string

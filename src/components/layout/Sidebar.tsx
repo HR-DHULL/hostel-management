@@ -9,6 +9,7 @@ import {
   UtensilsCrossed,
   MessageSquare,
   Wallet,
+  Receipt,
   Settings,
   LogOut,
   ChevronRight,
@@ -47,6 +48,11 @@ const NAV_ITEMS = [
     label: 'Complaints',
     href: '/complaints',
     icon: MessageSquare,
+  },
+  {
+    label: 'Expenses',
+    href: '/expenses',
+    icon: Receipt,
   },
 ]
 

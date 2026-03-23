@@ -130,7 +130,11 @@ export default async function StudentProfilePage({ params }: PageProps) {
                   View all fees →
                 </Link>
               </div>
-              <p className="text-sm text-slate-400 py-6 text-center">Fee management available in Phase 3</p>
+              <p className="text-sm text-slate-400 py-6 text-center">
+                All fee records are managed in the{' '}
+                <Link href="/fees/hostel" className="text-primary hover:underline">Hostel Fees</Link>{' '}
+                section.
+              </p>
             </div>
           </TabsContent>
 
