@@ -39,14 +39,14 @@ const NAV_ITEMS = [
     icon: UtensilsCrossed,
   },
   {
+    label: 'Fees',
+    href: '/fees/hostel',
+    icon: Wallet,
+  },
+  {
     label: 'Complaints',
     href: '/complaints',
     icon: MessageSquare,
-  },
-  {
-    label: 'Expenses',
-    href: '/expenses',
-    icon: Wallet,
   },
 ]
 
@@ -89,7 +89,8 @@ export function Sidebar({ instName = 'Hazeon HMS', userRole, userName }: Sidebar
           {NAV_ITEMS.map((item) => {
             const isActive =
               pathname === item.href ||
-              (item.href !== '/dashboard' && pathname.startsWith(item.href))
+              (item.href !== '/dashboard' && item.href !== '/fees/hostel' && pathname.startsWith(item.href)) ||
+              (item.href === '/fees/hostel' && pathname.startsWith('/fees'))
 
             return (
               <li key={item.href}>
