@@ -344,6 +344,130 @@ export type Database = {
         }
         Update: Partial<Database['public']['Tables']['expenses']['Insert']>
       }
+      leaves: {
+        Row: {
+          id: string
+          student_id: string
+          from_date: string
+          to_date: string | null
+          reason: string | null
+          status: 'active' | 'ended'
+          is_current: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          student_id: string
+          from_date: string
+          to_date?: string | null
+          reason?: string | null
+          status?: 'active' | 'ended'
+          is_current?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['leaves']['Insert']>
+      }
+      deleted_records: {
+        Row: {
+          id: string
+          table_name: string
+          record_id: string
+          record_data: Json
+          deleted_by: string | null
+          deleted_at: string
+        }
+        Insert: {
+          id?: string
+          table_name: string
+          record_id: string
+          record_data: Json
+          deleted_by?: string | null
+          deleted_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['deleted_records']['Insert']>
+      }
+      payment_log: {
+        Row: {
+          id: string
+          module: 'hostel' | 'library' | 'mess'
+          fee_id: string
+          member_id: string
+          amount: number
+          mode: 'cash' | 'upi' | 'cheque' | 'bank_transfer' | 'other'
+          notes: string | null
+          paid_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          module: 'hostel' | 'library' | 'mess'
+          fee_id: string
+          member_id: string
+          amount: number
+          mode?: 'cash' | 'upi' | 'cheque' | 'bank_transfer' | 'other'
+          notes?: string | null
+          paid_at?: string
+          created_by?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['payment_log']['Insert']>
+      }
+      rooms: {
+        Row: {
+          id: string
+          hostel_id: string
+          room_number: string
+          capacity: number
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          hostel_id: string
+          room_number: string
+          capacity?: number
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['rooms']['Insert']>
+      }
+      mess_attendance: {
+        Row: {
+          id: string
+          member_id: string
+          att_date: string
+          present: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          member_id: string
+          att_date: string
+          present?: boolean
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['mess_attendance']['Insert']>
+      }
+      broadcast_log: {
+        Row: {
+          id: string
+          subject: string
+          message: string
+          target: 'all' | 'hostel' | 'library' | 'mess'
+          sent_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          subject: string
+          message: string
+          target?: 'all' | 'hostel' | 'library' | 'mess'
+          sent_by?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['broadcast_log']['Insert']>
+      }
     }
     Views: {}
     Functions: {

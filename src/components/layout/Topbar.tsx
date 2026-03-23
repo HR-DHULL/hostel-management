@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 
 interface TopbarProps {
   title: string
-  description?: string
+  description?: React.ReactNode
   actions?: React.ReactNode
 }
 
