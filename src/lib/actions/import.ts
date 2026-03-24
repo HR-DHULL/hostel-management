@@ -5,8 +5,12 @@ import { createClient } from '@/lib/supabase/server'
 
 /** Normalises various date formats → YYYY-MM-DD */
 function parseDate(raw: string): string {
-  if (!raw) return new Date().toISOString().split('T')[0]
-  const s = raw.trim()
+  const today = new Date().toISOString().split('T')[0]
+  if (!raw) return today
+
+  // Strip time component and timezone (e.g. "2024-01-01T00:00:00+05:30" → "2024-01-01")
+  const s = raw.trim().split(/[T ]/)[0].replace(/[Z+].*$/, '').trim()
+  if (!s) return today
 
   // Already YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
@@ -15,21 +19,27 @@ function parseDate(raw: string): string {
   const dmy = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/)
   if (dmy) {
     const [, dd, mm, yyyy] = dmy
-    return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`
+    if (Number(yyyy) >= 1900 && Number(yyyy) <= 2100)
+      return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`
   }
 
   // MM/DD/YYYY
   const mdy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
   if (mdy) {
     const [, mm, dd, yyyy] = mdy
-    return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`
+    if (Number(yyyy) >= 1900 && Number(yyyy) <= 2100)
+      return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`
   }
 
-  // Fallback: let JS parse it
+  // Fallback: let JS parse it, but only if year is sane
   const d = new Date(s)
-  if (!isNaN(d.getTime())) return d.toISOString().split('T')[0]
+  if (!isNaN(d.getTime())) {
+    const year = d.getFullYear()
+    if (year >= 1900 && year <= 2100)
+      return d.toISOString().split('T')[0]
+  }
 
-  return new Date().toISOString().split('T')[0]
+  return today
 }
 
 export type StudentImportRow = {

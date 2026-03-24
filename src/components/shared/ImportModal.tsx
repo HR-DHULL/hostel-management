@@ -35,17 +35,37 @@ const MODULE_LABEL: Record<Module, string> = {
   mess: 'Mess Members',
 }
 
+/** Splits a CSV line respecting quoted fields (e.g. "Smith, John" stays one field) */
+function splitCSVLine(line: string): string[] {
+  const cols: string[] = []
+  let current = ''
+  let inQuotes = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (ch === '"') {
+      inQuotes = !inQuotes
+    } else if (ch === ',' && !inQuotes) {
+      cols.push(current.trim())
+      current = ''
+    } else {
+      current += ch
+    }
+  }
+  cols.push(current.trim())
+  return cols
+}
+
 function parseCSV(text: string, headers: string[]) {
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
   if (lines.length === 0) return []
 
   // Auto-detect if first line is headers
-  const firstLine = lines[0].split(',').map(h => h.trim().toLowerCase())
+  const firstLine = splitCSVLine(lines[0]).map(h => h.toLowerCase())
   const hasHeader = headers.some(h => firstLine.includes(h))
   const dataLines = hasHeader ? lines.slice(1) : lines
 
   return dataLines.map(line => {
-    const cols = line.split(',').map(c => c.trim())
+    const cols = splitCSVLine(line)
     const row: Record<string, string> = {}
     const keys = hasHeader ? firstLine : headers
     keys.forEach((key, i) => {
