@@ -31,9 +31,13 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Public paths that don't require auth
-  const isLoginPath = pathname === '/login' || pathname === '/portal/login'
+  const isAuthRoute  = pathname.startsWith('/auth/')   // /auth/callback, /auth/set-password
+  const isLoginPath  = pathname === '/login' || pathname === '/portal/login'
   const isPortalPath = pathname.startsWith('/portal')
-  const isAdminPath = !isPortalPath && !isLoginPath && pathname !== '/'
+  const isAdminPath  = !isPortalPath && !isLoginPath && !isAuthRoute && pathname !== '/'
+
+  // Auth routes (callback, set-password) are always public
+  if (isAuthRoute) return supabaseResponse
 
   // Not authenticated
   if (!user) {

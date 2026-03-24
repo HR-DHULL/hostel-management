@@ -7,6 +7,7 @@ import { StudentStatusBadge } from '@/components/shared/StatusBadge'
 import { Badge } from '@/components/ui/badge'
 import { AddMessMemberButton } from '@/components/mess/AddMessMemberButton'
 import { Pagination } from '@/components/shared/Pagination'
+import { ImportModal } from '@/components/shared/ImportModal'
 import { getMessMembers } from '@/lib/queries/mess'
 import { formatCurrency, getInitials } from '@/lib/utils'
 
@@ -48,6 +49,7 @@ export default async function MessPage({ searchParams }: PageProps) {
                 Attendance
               </Button>
             </Link>
+            <ImportModal module="mess" />
             <AddMessMemberButton />
           </div>
         }

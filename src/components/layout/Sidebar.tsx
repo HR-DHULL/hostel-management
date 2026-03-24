@@ -13,6 +13,8 @@ import {
   Settings,
   LogOut,
   ChevronRight,
+  Layers,
+  Users,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -28,6 +30,11 @@ const NAV_ITEMS = [
     label: 'Hostel',
     href: '/hostel',
     icon: Building2,
+  },
+  {
+    label: 'Buildings',
+    href: '/hostel/buildings',
+    icon: Layers,
   },
   {
     label: 'Library',
@@ -53,6 +60,11 @@ const NAV_ITEMS = [
     label: 'Expenses',
     href: '/expenses',
     icon: Receipt,
+  },
+  {
+    label: 'Team',
+    href: '/settings/team',
+    icon: Users,
   },
 ]
 
@@ -95,8 +107,9 @@ export function Sidebar({ instName = 'Hazeon HMS', userRole, userName }: Sidebar
           {NAV_ITEMS.map((item) => {
             const isActive =
               pathname === item.href ||
-              (item.href !== '/dashboard' && item.href !== '/fees/hostel' && pathname.startsWith(item.href)) ||
-              (item.href === '/fees/hostel' && pathname.startsWith('/fees'))
+              (item.href === '/fees/hostel' && pathname.startsWith('/fees')) ||
+              (item.href === '/hostel' && pathname.startsWith('/hostel') && !pathname.startsWith('/hostel/buildings')) ||
+              (item.href !== '/dashboard' && item.href !== '/fees/hostel' && item.href !== '/hostel' && pathname.startsWith(item.href))
 
             return (
               <li key={item.href}>

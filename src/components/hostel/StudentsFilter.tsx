@@ -55,14 +55,14 @@ export function StudentsFilter({ hostels }: StudentsFilterProps) {
 
       {hostels.length > 0 && (
         <Select
-          defaultValue={searchParams.get('hostelId') ?? ''}
+          defaultValue={searchParams.get('hostelId') ?? 'all'}
           onValueChange={v => updateParam('hostelId', v)}
         >
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="All buildings" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All buildings</SelectItem>
+            <SelectItem value="all">All buildings</SelectItem>
             {hostels.map(h => (
               <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>
             ))}

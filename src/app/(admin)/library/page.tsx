@@ -8,6 +8,7 @@ import { StudentStatusBadge } from '@/components/shared/StatusBadge'
 import { AddLibraryMemberButton } from '@/components/library/AddLibraryMemberButton'
 import { LibraryFilter } from '@/components/library/LibraryFilter'
 import { Pagination } from '@/components/shared/Pagination'
+import { ImportModal } from '@/components/shared/ImportModal'
 import { getLibraryMembers } from '@/lib/queries/library'
 import { getInitials, formatCurrency } from '@/lib/utils'
 
@@ -38,6 +39,7 @@ export default async function LibraryPage({ searchParams }: PageProps) {
         actions={
           <div className="flex items-center gap-2">
             <LibraryFilter />
+            <ImportModal module="library" />
             <AddLibraryMemberButton />
           </div>
         }

@@ -7,8 +7,12 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { StudentStatusBadge } from '@/components/shared/StatusBadge'
 import { StudentActions } from '@/components/hostel/StudentActions'
 import { LeaveManager } from '@/components/hostel/LeaveManager'
-import { getStudentById, getStudentLeaves, getHostels } from '@/lib/queries/students'
+import { IdCardModal } from '@/components/shared/IdCardModal'
+import { StudentPortalAccessButton } from '@/components/hostel/StudentPortalAccessButton'
+import { StudentServicesSection } from '@/components/hostel/StudentServicesSection'
+import { getStudentById, getStudentLeaves, getHostels, getStudentPortalUser, getStudentLinkedServices } from '@/lib/queries/students'
 import { formatCurrency, getInitials } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/server'
 
 interface PageProps {
   params: { id: string }
@@ -20,12 +24,25 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function StudentProfilePage({ params }: PageProps) {
+  const supabase = await createClient()
   const [student, hostels] = await Promise.all([
     getStudentById(params.id),
     getHostels(),
   ])
 
   if (!student) notFound()
+  // Run separately so failures here never break the main page render
+  const [portalUser, settingsRaw, servicesResult] = await Promise.allSettled([
+    getStudentPortalUser(params.id),
+    (supabase as any).from('app_settings').select('inst_name').single(),
+    getStudentLinkedServices(params.id),
+  ])
+  const portalUserId = portalUser.status === 'fulfilled' ? portalUser.value : null
+  const instName: string =
+    settingsRaw.status === 'fulfilled' ? ((settingsRaw.value as any)?.data?.inst_name ?? 'Hazeon HMS') : 'Hazeon HMS'
+  const services = servicesResult.status === 'fulfilled'
+    ? servicesResult.value
+    : { library: null, mess: null }
 
   const leaves = await getStudentLeaves(params.id)
   type ProfileLeaveRow = { id: string; student_id: string; is_current: boolean; status: 'active' | 'ended'; from_date: string; to_date: string | null; reason: string | null; created_at: string; updated_at: string }
@@ -45,7 +62,25 @@ export default async function StudentProfilePage({ params }: PageProps) {
             {student.name}
           </span>
         }
-        actions={<StudentActions student={student} hostels={hostels} />}
+        actions={
+          <div className="flex items-center gap-2">
+            <IdCardModal
+              type="student"
+              data={{
+                id: student.id,
+                name: student.name,
+                phone: student.phone,
+                course: student.course,
+                room_number: student.room_number,
+                hostel_name: student.hostels?.name,
+                joining_date: student.joining_date,
+                status: student.status,
+              }}
+              instName={instName}
+            />
+            <StudentActions student={student} hostels={hostels} />
+          </div>
+        }
       />
 
       <div className="p-6 space-y-6">
@@ -105,6 +140,26 @@ export default async function StudentProfilePage({ params }: PageProps) {
               <p className="text-sm text-slate-700">{student.notes}</p>
             </div>
           )}
+
+          <StudentServicesSection
+            studentId={student.id}
+            studentName={student.name}
+            studentPhone={student.phone}
+            studentEmail={student.email}
+            hostelMonthlyFee={Number(student.monthly_fee_amount)}
+            hostelDiscount={Number(student.discount)}
+            services={services}
+          />
+
+          <div className="mt-4 pt-4 border-t border-border">
+            <p className="text-xs text-slate-500 font-medium mb-2">Portal Access</p>
+            <StudentPortalAccessButton
+              studentId={student.id}
+              studentName={student.name}
+              studentEmail={student.email}
+              portalUserId={portalUserId?.id ?? null}
+            />
+          </div>
         </div>
 
         {/* Tabs */}
