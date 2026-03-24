@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { IndianRupee, Loader2, ChevronDown } from 'lucide-react'
+import { IndianRupee, Loader2, ChevronDown, Pencil, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { FeeStatusBadge } from '@/components/shared/StatusBadge'
-import { recordPayment, recordAdvancePayment } from '@/lib/actions/fees'
+import { recordPayment, recordAdvancePayment, updateFeeAmount } from '@/lib/actions/fees'
 import { formatCurrency } from '@/lib/utils'
 import type { FeeModule, FeeRow } from '@/lib/queries/fees'
 
@@ -39,6 +39,29 @@ export function PaymentModal({ open, onClose, fee, module }: PaymentModalProps) 
   const [advMonths, setAdvMonths] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
+
+  // Inline fee amount edit
+  const [editingAmount, setEditingAmount] = useState(false)
+  const [editTotal, setEditTotal]         = useState(String(fee.total_amount ?? fee.net_amount))
+  const [editDiscount, setEditDiscount]   = useState(String(fee.discount ?? 0))
+  const [amountSaving, setAmountSaving]   = useState(false)
+
+  async function handleSaveAmount() {
+    const total    = Number(editTotal)
+    const discount = Number(editDiscount)
+    if (total < 0 || discount < 0) { setError('Invalid amounts'); return }
+    setAmountSaving(true)
+    setError('')
+    try {
+      await updateFeeAmount(module, fee.id, total, discount)
+      setEditingAmount(false)
+      router.refresh()
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Something went wrong')
+    } finally {
+      setAmountSaving(false)
+    }
+  }
 
   async function handleSinglePayment() {
     const amt = Number(amount)
@@ -81,9 +104,50 @@ export function PaymentModal({ open, onClose, fee, module }: PaymentModalProps) 
 
         {/* Fee summary */}
         <div className="rounded-lg bg-slate-50 border border-border p-3 space-y-1.5 text-sm">
-          <div className="flex justify-between">
+          <div className="flex justify-between items-center">
             <span className="text-slate-500">Net payable</span>
-            <span className="font-medium">{formatCurrency(fee.net_amount)}</span>
+            {editingAmount ? (
+              <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-slate-400">Fee</span>
+                  <input
+                    autoFocus
+                    type="number"
+                    min="0"
+                    className="w-24 rounded border border-border px-1.5 py-0.5 text-xs outline-none focus:ring-1 focus:ring-primary/30 text-right"
+                    value={editTotal}
+                    onChange={e => setEditTotal(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-slate-400">Disc</span>
+                  <input
+                    type="number"
+                    min="0"
+                    className="w-20 rounded border border-border px-1.5 py-0.5 text-xs outline-none focus:ring-1 focus:ring-primary/30 text-right"
+                    value={editDiscount}
+                    onChange={e => setEditDiscount(e.target.value)}
+                  />
+                </div>
+                <button onClick={handleSaveAmount} disabled={amountSaving} className="p-0.5 text-green-600 hover:text-green-800">
+                  <Check className="h-3.5 w-3.5" />
+                </button>
+                <button onClick={() => setEditingAmount(false)} className="p-0.5 text-slate-400 hover:text-slate-600">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <span className="font-medium">{formatCurrency(fee.net_amount)}</span>
+                <button
+                  onClick={() => { setEditingAmount(true); setEditTotal(String(fee.total_amount ?? fee.net_amount)); setEditDiscount(String(fee.discount ?? 0)) }}
+                  className="p-0.5 text-slate-300 hover:text-slate-600 transition-colors"
+                  title="Correct fee amount"
+                >
+                  <Pencil className="h-3 w-3" />
+                </button>
+              </div>
+            )}
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Already paid</span>

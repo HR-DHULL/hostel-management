@@ -29,6 +29,33 @@ function computeStatus(netAmount: number, paidAmount: number, dueDate: string): 
   return 'partial'
 }
 
+export async function updateFeeAmount(
+  module: FeeModule,
+  feeId: string,
+  totalAmount: number,
+  discount: number
+) {
+  const supabase = await createClient()
+  const feeTable = FEE_TABLE[module]
+
+  const { data: fee } = await (supabase.from(feeTable) as any)
+    .select('paid_amount, due_date')
+    .eq('id', feeId)
+    .single()
+
+  if (!fee) throw new Error('Fee record not found')
+
+  const netAmount = totalAmount - discount
+  const newStatus = computeStatus(netAmount, Number((fee as any).paid_amount), (fee as any).due_date)
+
+  const { error } = await (supabase.from(feeTable) as any)
+    .update({ total_amount: totalAmount, discount, net_amount: netAmount, status: newStatus })
+    .eq('id', feeId)
+
+  if (error) throw new Error(error.message)
+  revalidatePath(feePath(module))
+}
+
 export async function recordPayment(
   module: FeeModule,
   feeId: string,
