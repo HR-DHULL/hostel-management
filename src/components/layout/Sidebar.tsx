@@ -70,11 +70,12 @@ const NAV_ITEMS = [
 
 interface SidebarProps {
   instName?: string
+  logoUrl?: string | null
   userRole?: string
   userName?: string
 }
 
-export function Sidebar({ instName = 'Hazeon HMS', userRole, userName }: SidebarProps) {
+export function Sidebar({ instName = 'Hazeon HMS', logoUrl, userRole, userName }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -92,9 +93,17 @@ export function Sidebar({ instName = 'Hazeon HMS', userRole, userName }: Sidebar
       {/* Logo / Institute Name */}
       <div className="flex h-14 items-center border-b border-border px-5">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
-            <Building2 className="h-4 w-4 text-white" />
-          </div>
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt="Logo"
+              className="h-7 w-7 rounded-md object-cover shrink-0"
+            />
+          ) : (
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary shrink-0">
+              <Building2 className="h-4 w-4 text-white" />
+            </div>
+          )}
           <span className="text-sm font-semibold text-slate-900 truncate max-w-[160px]">
             {instName}
           </span>

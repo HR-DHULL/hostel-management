@@ -1,23 +1,63 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, Check } from 'lucide-react'
+import { Loader2, Check, Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import { saveSettings } from '@/lib/actions/settings'
+import { createClient } from '@/lib/supabase/client'
 import type { Tables } from '@/lib/supabase/helpers'
 
 type SettingsRow = Tables<'app_settings'>
 
 export function SettingsForm({ settings }: { settings: SettingsRow | null }) {
   const router   = useRouter()
+  const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [saved,   setSaved]   = useState(false)
   const [error,   setError]   = useState('')
+  const [logoUrl, setLogoUrl] = useState<string | null>((settings as any)?.logo_url ?? null)
+  const [logoUploading, setLogoUploading] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  async function handleLogoUpload(file: File) {
+    if (!file.type.startsWith('image/')) { setError('Please upload an image file'); return }
+    setLogoUploading(true)
+    setError('')
+    try {
+      const ext  = file.name.split('.').pop()
+      const path = `logo.${ext}`
+      const { error: upErr } = await supabase.storage.from('logos').upload(path, file, { upsert: true })
+      if (upErr) throw new Error(upErr.message)
+      const { data } = supabase.storage.from('logos').getPublicUrl(path)
+      const url = `${data.publicUrl}?t=${Date.now()}`
+      // Save logo_url immediately
+      await (supabase.from('app_settings') as any).upsert({ id: (settings as any)?.id ?? 1, logo_url: url })
+      setLogoUrl(url)
+      router.refresh()
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setLogoUploading(false)
+    }
+  }
+
+  async function handleRemoveLogo() {
+    setLogoUploading(true)
+    try {
+      await (supabase.from('app_settings') as any).upsert({ id: (settings as any)?.id ?? 1, logo_url: null })
+      setLogoUrl(null)
+      router.refresh()
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setLogoUploading(false)
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -53,6 +93,51 @@ export function SettingsForm({ settings }: { settings: SettingsRow | null }) {
       <div>
         <h2 className="text-sm font-semibold text-slate-900 mb-4">Institute Details</h2>
         <div className="space-y-4">
+
+          {/* Logo upload */}
+          <div className="space-y-2">
+            <Label>Academy Logo</Label>
+            <div className="flex items-center gap-4">
+              {logoUrl ? (
+                <div className="relative">
+                  <img src={logoUrl} alt="Logo" className="h-16 w-16 rounded-lg object-cover border border-border" />
+                  <button
+                    type="button"
+                    onClick={handleRemoveLogo}
+                    disabled={logoUploading}
+                    className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex h-16 w-16 items-center justify-center rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 text-slate-300">
+                  <Upload className="h-6 w-6" />
+                </div>
+              )}
+              <div>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleLogoUpload(f) }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={logoUploading}
+                  onClick={() => fileRef.current?.click()}
+                >
+                  {logoUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                  {logoUploading ? 'Uploading…' : logoUrl ? 'Change logo' : 'Upload logo'}
+                </Button>
+                <p className="text-xs text-slate-400 mt-1">PNG, JPG, SVG — shown in sidebar</p>
+              </div>
+            </div>
+          </div>
+
           <div className="space-y-1.5">
             <Label htmlFor="inst_name">Institute name <span className="text-danger">*</span></Label>
             <Input

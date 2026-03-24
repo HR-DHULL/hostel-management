@@ -41,6 +41,7 @@ export default async function AdminLayout({
     <div className="flex h-screen overflow-hidden bg-muted">
       <Sidebar
         instName={settings?.inst_name ?? 'Hazeon HMS'}
+        logoUrl={(settings as any)?.logo_url ?? null}
         userRole={profile?.role}
         userName={profile?.display_name}
       />
