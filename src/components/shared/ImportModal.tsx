@@ -75,16 +75,23 @@ function parseCSV(text: string, headers: string[]) {
   }).filter(row => row['name'] && row['phone'])
 }
 
-interface Props {
-  module: Module
+interface HostelOption {
+  id: string
+  name: string
 }
 
-export function ImportModal({ module }: Props) {
+interface Props {
+  module: Module
+  hostels?: HostelOption[]
+}
+
+export function ImportModal({ module, hostels }: Props) {
   const [open, setOpen] = useState(false)
   const [rows, setRows] = useState<Record<string, string>[]>([])
   const [fileName, setFileName] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(0)
+  const [selectedHostelId, setSelectedHostelId] = useState('')
   const [isPending, startTransition] = useTransition()
   const fileRef = useRef<HTMLInputElement>(null)
   const template = TEMPLATES[module]
@@ -136,6 +143,7 @@ export function ImportModal({ module }: Props) {
             email: r.email || undefined,
             course: r.course || undefined,
             room_number: r.room_number || undefined,
+            hostel_id: selectedHostelId || undefined,
             monthly_fee_amount: Number(r.monthly_fee_amount) || 0,
             fee_day: Number(r.fee_day) || 5,
             joining_date: r.joining_date || new Date().toISOString().split('T')[0],
@@ -183,7 +191,7 @@ export function ImportModal({ module }: Props) {
 
   if (!open) {
     return (
-      <Button variant="outline" size="sm" onClick={() => { setOpen(true); setSuccess(0); setRows([]); setFileName(''); setError('') }}>
+      <Button variant="outline" size="sm" onClick={() => { setOpen(true); setSuccess(0); setRows([]); setFileName(''); setError(''); setSelectedHostelId('') }}>
         <Upload className="h-4 w-4" /> Import CSV
       </Button>
     )
@@ -230,6 +238,23 @@ export function ImportModal({ module }: Props) {
                   Download template
                 </button>
               </div>
+
+              {/* Hostel selector */}
+              {module === 'hostel' && hostels && hostels.length > 0 && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-700">Assign to building / hostel</label>
+                  <select
+                    className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 bg-white"
+                    value={selectedHostelId}
+                    onChange={e => setSelectedHostelId(e.target.value)}
+                  >
+                    <option value="">No building assigned</option>
+                    {hostels.map(h => (
+                      <option key={h.id} value={h.id}>{h.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Drop zone */}
               {rows.length === 0 ? (

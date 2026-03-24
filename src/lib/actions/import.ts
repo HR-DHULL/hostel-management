@@ -48,6 +48,7 @@ export type StudentImportRow = {
   email?: string
   course?: string
   room_number?: string
+  hostel_id?: string
   monthly_fee_amount: number
   fee_day: number
   joining_date: string

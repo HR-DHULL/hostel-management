@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Plus, Building2, LayoutGrid } from 'lucide-react'
+import { Plus, Building2, LayoutGrid, Layers } from 'lucide-react'
 import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -8,6 +8,7 @@ import { StudentStatusBadge } from '@/components/shared/StatusBadge'
 import { AddStudentButton } from '@/components/hostel/AddStudentButton'
 import { StudentsFilter } from '@/components/hostel/StudentsFilter'
 import { Pagination } from '@/components/shared/Pagination'
+import { ImportModal } from '@/components/shared/ImportModal'
 import { getStudents, getHostels } from '@/lib/queries/students'
 import { formatCurrency } from '@/lib/utils'
 
@@ -43,11 +44,18 @@ export default async function HostelPage({ searchParams }: PageProps) {
         actions={
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" asChild>
+              <Link href="/hostel/buildings">
+                <Layers className="h-4 w-4" />
+                Buildings
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
               <Link href="/hostel/occupancy">
                 <LayoutGrid className="h-4 w-4" />
                 Occupancy
               </Link>
             </Button>
+            <ImportModal module="hostel" hostels={hostels} />
             <AddStudentButton hostels={hostels} />
           </div>
         }
