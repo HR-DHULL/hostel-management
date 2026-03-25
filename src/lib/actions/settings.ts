@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 
 export type SettingsUpdate = {
   inst_name?:               string
@@ -14,7 +14,7 @@ export type SettingsUpdate = {
 }
 
 export async function saveSettings(data: SettingsUpdate) {
-  const supabase = await createClient()
+  const supabase = await createAdminClient()
 
   // Try update first; if no row, insert
   const { data: existing } = await (supabase.from('app_settings') as any)
