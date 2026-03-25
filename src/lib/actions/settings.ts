@@ -1,7 +1,17 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createAdminClient } from '@/lib/supabase/server'
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const KNOWN_ID     = 'aacc6d46-9d28-4830-ad74-0acdfb0208d3'
+
+const headers = () => ({
+  'apikey':        SERVICE_KEY,
+  'Authorization': `Bearer ${SERVICE_KEY}`,
+  'Content-Type':  'application/json',
+  'Prefer':        'return=minimal',
+})
 
 export type SettingsUpdate = {
   inst_name?:               string
@@ -14,23 +24,14 @@ export type SettingsUpdate = {
 }
 
 export async function saveSettings(data: SettingsUpdate) {
-  const supabase = await createAdminClient()
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/app_settings?id=eq.${KNOWN_ID}`,
+    { method: 'PATCH', headers: headers(), body: JSON.stringify(data) }
+  )
 
-  // Try update first; if no row, insert
-  const { data: existing } = await (supabase.from('app_settings') as any)
-    .select('id')
-    .limit(1)
-    .single()
-
-  if (existing) {
-    const { error } = await (supabase.from('app_settings') as any)
-      .update(data)
-      .eq('id', (existing as any).id)
-    if (error) throw new Error(error.message)
-  } else {
-    const { error } = await (supabase.from('app_settings') as any)
-      .insert(data)
-    if (error) throw new Error(error.message)
+  if (!res.ok) {
+    const msg = await res.text()
+    throw new Error(msg)
   }
 
   revalidatePath('/settings')
