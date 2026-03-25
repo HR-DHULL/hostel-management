@@ -41,7 +41,7 @@ export default async function AdminLayout({
     <div className="flex h-screen overflow-hidden bg-muted">
       <Sidebar
         instName={settings?.inst_name ?? 'Hazeon HMS'}
-        logoUrl={(settings as any)?.logo_url ?? null}
+        logoUrl={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/logos/logo`}
         userRole={profile?.role}
         userName={profile?.display_name}
       />

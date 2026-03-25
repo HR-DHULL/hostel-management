@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -79,6 +80,7 @@ export function Sidebar({ instName = 'Hazeon HMS', logoUrl, userRole, userName }
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+  const [logoError, setLogoError] = useState(false)
 
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -93,11 +95,12 @@ export function Sidebar({ instName = 'Hazeon HMS', logoUrl, userRole, userName }
       {/* Logo / Institute Name */}
       <div className="flex h-14 items-center border-b border-border px-5">
         <div className="flex items-center gap-2.5">
-          {logoUrl ? (
+          {logoUrl && !logoError ? (
             <img
               src={logoUrl}
               alt="Logo"
               className="h-7 w-7 rounded-md object-cover shrink-0"
+              onError={() => setLogoError(true)}
             />
           ) : (
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary shrink-0">

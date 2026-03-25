@@ -20,7 +20,11 @@ export function SettingsForm({ settings }: { settings: SettingsRow | null }) {
   const [loading, setLoading] = useState(false)
   const [saved,   setSaved]   = useState(false)
   const [error,   setError]   = useState('')
-  const [logoUrl, setLogoUrl] = useState<string | null>((settings as any)?.logo_url ?? null)
+  const storageBase = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const [logoUrl, setLogoUrl] = useState<string | null>(
+    storageBase ? `${storageBase}/storage/v1/object/public/logos/logo?t=${Date.now()}` : null
+  )
+  const [logoImgError, setLogoImgError] = useState(false)
   const [logoUploading, setLogoUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -29,16 +33,15 @@ export function SettingsForm({ settings }: { settings: SettingsRow | null }) {
     setLogoUploading(true)
     setError('')
     try {
-      const ext  = file.name.split('.').pop()
-      const path = `logo.${ext}`
-      const { error: upErr } = await supabase.storage.from('logos').upload(path, file, { upsert: true })
+      // Always upload as fixed path "logo" — no DB column needed
+      const { error: upErr } = await supabase.storage.from('logos').upload('logo', file, {
+        upsert: true,
+        contentType: file.type,
+      })
       if (upErr) throw new Error(upErr.message)
-      const { data } = supabase.storage.from('logos').getPublicUrl(path)
-      const url = `${data.publicUrl}?t=${Date.now()}`
-      // Save logo_url immediately
-      await (supabase.from('app_settings') as any).upsert({ id: (settings as any)?.id ?? 1, logo_url: url })
-      setLogoUrl(url)
-      router.refresh()
+      const { data } = supabase.storage.from('logos').getPublicUrl('logo')
+      setLogoUrl(`${data.publicUrl}?t=${Date.now()}`)
+      setLogoImgError(false)
     } catch (e: any) {
       setError(e.message)
     } finally {
@@ -49,9 +52,8 @@ export function SettingsForm({ settings }: { settings: SettingsRow | null }) {
   async function handleRemoveLogo() {
     setLogoUploading(true)
     try {
-      await (supabase.from('app_settings') as any).upsert({ id: (settings as any)?.id ?? 1, logo_url: null })
+      await supabase.storage.from('logos').remove(['logo'])
       setLogoUrl(null)
-      router.refresh()
     } catch (e: any) {
       setError(e.message)
     } finally {
@@ -98,9 +100,14 @@ export function SettingsForm({ settings }: { settings: SettingsRow | null }) {
           <div className="space-y-2">
             <Label>Academy Logo</Label>
             <div className="flex items-center gap-4">
-              {logoUrl ? (
+              {logoUrl && !logoImgError ? (
                 <div className="relative">
-                  <img src={logoUrl} alt="Logo" className="h-16 w-16 rounded-lg object-cover border border-border" />
+                  <img
+                    src={logoUrl}
+                    alt="Logo"
+                    className="h-16 w-16 rounded-lg object-cover border border-border"
+                    onError={() => setLogoImgError(true)}
+                  />
                   <button
                     type="button"
                     onClick={handleRemoveLogo}
