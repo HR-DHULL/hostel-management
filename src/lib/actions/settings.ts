@@ -11,7 +11,6 @@ export type SettingsUpdate = {
   wa_template_fee_reminder?: string
   reminder_days?:            number
   reminder_hour?:            number
-  total_library_seats?:      number
 }
 
 export async function saveSettings(data: SettingsUpdate) {

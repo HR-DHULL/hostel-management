@@ -45,7 +45,6 @@ export type Database = {
           wa_template_fee_reminder: string | null
           reminder_days: number
           reminder_hour: number
-          total_library_seats: number
           created_at: string
           updated_at: string
         }

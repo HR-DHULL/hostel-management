@@ -65,7 +65,6 @@ export function SettingsForm({ settings }: { settings: SettingsRow | null }) {
       admin_email:              String(fd.get('admin_email') ?? '').trim() || undefined,
       wa_template_fee_reminder: String(fd.get('wa_template_fee_reminder') ?? '').trim() || undefined,
       reminder_days:            Number(fd.get('reminder_days') ?? 3),
-      total_library_seats:      Number(fd.get('total_library_seats') ?? 50),
     }
 
     try {
@@ -182,18 +181,6 @@ export function SettingsForm({ settings }: { settings: SettingsRow | null }) {
             <Label htmlFor="reminder_days">Remind N days before due date</Label>
             <Input id="reminder_days" name="reminder_days" type="number" min="0" max="30" defaultValue={settings?.reminder_days ?? 3} className="w-32" />
           </div>
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* Library */}
-      <div>
-        <h2 className="text-sm font-semibold text-slate-900 mb-1">Library</h2>
-        <p className="text-xs text-slate-500 mb-4">Configure the total number of seats available in your library.</p>
-        <div className="space-y-1.5">
-          <Label htmlFor="total_library_seats">Total library seats</Label>
-          <Input id="total_library_seats" name="total_library_seats" type="number" min="1" max="9999" defaultValue={(settings as any)?.total_library_seats ?? 50} className="w-32" />
         </div>
       </div>
 
