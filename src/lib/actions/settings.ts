@@ -1,36 +1,29 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const KNOWN_ID     = 'aacc6d46-9d28-4830-ad74-0acdfb0208d3'
-
-const authHeaders = () => ({
-  'apikey':        SERVICE_KEY,
-  'Authorization': `Bearer ${SERVICE_KEY}`,
-})
+import { requireRole, createAdminClient } from '@/lib/supabase/server'
 
 export type SettingsUpdate = {
-  inst_name?:               string
-  inst_address?:            string
-  inst_phone?:              string
-  admin_email?:             string
+  inst_name?:                string
+  inst_address?:             string
+  inst_phone?:               string
+  admin_email?:              string
   wa_template_fee_reminder?: string
-  reminder_days?:           number
-  reminder_hour?:           number
+  reminder_days?:            number
+  reminder_hour?:            number
+  total_library_seats?:      number
 }
 
 export async function saveSettings(data: SettingsUpdate) {
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/app_settings?id=eq.${KNOWN_ID}`,
-    {
-      method: 'PATCH',
-      headers: { ...authHeaders(), 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify(data),
-    }
-  )
-  if (!res.ok) throw new Error(await res.text())
+  await requireRole('owner')
+  const supabase = await createAdminClient()
+
+  // Upsert the single settings row (match on any existing row)
+  const { error } = await (supabase.from('app_settings') as any)
+    .update(data)
+    .not('id', 'is', null)
+
+  if (error) throw new Error(error.message)
 
   revalidatePath('/settings')
   revalidatePath('/dashboard')
@@ -38,48 +31,46 @@ export async function saveSettings(data: SettingsUpdate) {
 
 export async function uploadLogo(formData: FormData): Promise<{ url: string; error?: string }> {
   try {
+    await requireRole('owner')
+    const supabase = await createAdminClient()
+
     const file = formData.get('file') as File
     if (!file) return { url: '', error: 'No file provided' }
 
-    const buffer = await file.arrayBuffer()
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+    const MAX_SIZE_BYTES = 2 * 1024 * 1024 // 2 MB
 
-    // Delete existing logo first (ignore errors)
-    await fetch(`${SUPABASE_URL}/storage/v1/object/logos/logo`, {
-      method: 'DELETE',
-      headers: authHeaders(),
-    })
-
-    // Upload new logo
-    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/logos/logo`, {
-      method: 'POST',
-      headers: {
-        ...authHeaders(),
-        'Content-Type': file.type,
-        'x-upsert': 'true',
-      },
-      body: buffer,
-    })
-
-    if (!res.ok) {
-      const msg = await res.text()
-      return { url: '', error: msg }
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return { url: '', error: 'Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.' }
+    }
+    if (file.size > MAX_SIZE_BYTES) {
+      return { url: '', error: 'File too large. Maximum size is 2 MB.' }
     }
 
-    const url = `${SUPABASE_URL}/storage/v1/object/public/logos/logo?t=${Date.now()}`
+    const buffer = Buffer.from(await file.arrayBuffer())
+
+    const { error } = await supabase.storage
+      .from('logos')
+      .upload('logo', buffer, { contentType: file.type, upsert: true })
+
+    if (error) return { url: '', error: error.message }
+
+    const { data } = supabase.storage.from('logos').getPublicUrl('logo')
+    const url = `${data.publicUrl}?t=${Date.now()}`
     return { url }
-  } catch (e: any) {
-    return { url: '', error: e.message }
+  } catch (e: unknown) {
+    return { url: '', error: e instanceof Error ? e.message : 'Upload failed' }
   }
 }
 
 export async function removeLogo(): Promise<{ error?: string }> {
   try {
-    await fetch(`${SUPABASE_URL}/storage/v1/object/logos/logo`, {
-      method: 'DELETE',
-      headers: authHeaders(),
-    })
+    await requireRole('owner')
+    const supabase = await createAdminClient()
+    const { error } = await supabase.storage.from('logos').remove(['logo'])
+    if (error) return { error: error.message }
     return {}
-  } catch (e: any) {
-    return { error: e.message }
+  } catch (e: unknown) {
+    return { error: e instanceof Error ? e.message : 'Remove failed' }
   }
 }

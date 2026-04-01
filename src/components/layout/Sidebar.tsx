@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -16,57 +16,27 @@ import {
   ChevronRight,
   Layers,
   Users,
+  BarChart2,
+  ClipboardList,
+  Armchair,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
-const NAV_ITEMS = [
-  {
-    label: 'Dashboard',
-    href: '/dashboard',
-    icon: LayoutDashboard,
-  },
-  {
-    label: 'Hostel',
-    href: '/hostel',
-    icon: Building2,
-  },
-  {
-    label: 'Buildings',
-    href: '/hostel/buildings',
-    icon: Layers,
-  },
-  {
-    label: 'Library',
-    href: '/library',
-    icon: BookOpen,
-  },
-  {
-    label: 'Mess',
-    href: '/mess',
-    icon: UtensilsCrossed,
-  },
-  {
-    label: 'Fees',
-    href: '/fees/hostel',
-    icon: Wallet,
-  },
-  {
-    label: 'Complaints',
-    href: '/complaints',
-    icon: MessageSquare,
-  },
-  {
-    label: 'Expenses',
-    href: '/expenses',
-    icon: Receipt,
-  },
-  {
-    label: 'Team',
-    href: '/settings/team',
-    icon: Users,
-  },
+const NAV_ITEMS: { label: string; href: string; icon: React.ElementType; permission?: string }[] = [
+  { label: 'Dashboard',  href: '/dashboard',        icon: LayoutDashboard },
+  { label: 'Hostel',     href: '/hostel',            icon: Building2,        permission: 'hostel'     },
+  { label: 'Buildings',  href: '/hostel/buildings',  icon: Layers,           permission: 'hostel'     },
+  { label: 'Library',    href: '/library',           icon: BookOpen,         permission: 'library'    },
+  { label: 'Seat Map',   href: '/library/seats',     icon: Armchair,         permission: 'library'    },
+  { label: 'Mess',       href: '/mess',              icon: UtensilsCrossed,  permission: 'mess'       },
+  { label: 'Fees',       href: '/fees/hostel',       icon: Wallet,           permission: 'fees'       },
+  { label: 'Complaints', href: '/complaints',        icon: MessageSquare,    permission: 'complaints' },
+  { label: 'Expenses',   href: '/expenses',          icon: Receipt,          permission: 'expenses'   },
+  { label: 'Reports',    href: '/reports',           icon: BarChart2,        permission: 'reports'    },
+  { label: 'Audit Log',  href: '/audit-log',         icon: ClipboardList,    permission: 'audit_log'  },
+  { label: 'Team',       href: '/settings/team',     icon: Users },
 ]
 
 interface SidebarProps {
@@ -74,9 +44,17 @@ interface SidebarProps {
   logoUrl?: string | null
   userRole?: string
   userName?: string
+  permissions?: Record<string, boolean>
 }
 
-export function Sidebar({ instName = 'Hazeon HMS', logoUrl, userRole, userName }: SidebarProps) {
+export function Sidebar({ instName = 'Hazeon HMS', logoUrl, userRole, userName, permissions }: SidebarProps) {
+  // If staff has custom permissions (non-empty), filter nav; otherwise show all
+  const hasCustomPerms = permissions && Object.keys(permissions).length > 0
+  const visibleNavItems = NAV_ITEMS.filter(item => {
+    if (!item.permission) return true          // always visible (Dashboard, Team)
+    if (!hasCustomPerms) return true           // full access
+    return permissions?.[item.permission] === true
+  })
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -116,12 +94,14 @@ export function Sidebar({ instName = 'Hazeon HMS', logoUrl, userRole, userName }
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         <ul className="space-y-0.5">
-          {NAV_ITEMS.map((item) => {
+          {visibleNavItems.map((item) => {
             const isActive =
               pathname === item.href ||
               (item.href === '/fees/hostel' && pathname.startsWith('/fees')) ||
               (item.href === '/hostel' && pathname.startsWith('/hostel') && !pathname.startsWith('/hostel/buildings')) ||
-              (item.href !== '/dashboard' && item.href !== '/fees/hostel' && item.href !== '/hostel' && pathname.startsWith(item.href))
+              (item.href === '/library' && pathname.startsWith('/library') && !pathname.startsWith('/library/seats')) ||
+              (item.href === '/library/seats' && pathname.startsWith('/library/seats')) ||
+              (item.href !== '/dashboard' && item.href !== '/fees/hostel' && item.href !== '/hostel' && item.href !== '/library' && item.href !== '/library/seats' && pathname.startsWith(item.href))
 
             return (
               <li key={item.href}>
@@ -150,25 +130,27 @@ export function Sidebar({ instName = 'Hazeon HMS', logoUrl, userRole, userName }
           })}
         </ul>
 
-        <div className="mt-6 pt-4 border-t border-border">
-          <Link
-            href="/settings"
-            className={cn(
-              'group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-              pathname.startsWith('/settings')
-                ? 'bg-primary/8 text-primary'
-                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-            )}
-          >
-            <Settings
+        {userRole === 'owner' && (
+          <div className="mt-6 pt-4 border-t border-border">
+            <Link
+              href="/settings"
               className={cn(
-                'h-4 w-4 shrink-0',
-                pathname.startsWith('/settings') ? 'text-primary' : 'text-slate-400 group-hover:text-slate-600'
+                'group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                pathname.startsWith('/settings')
+                  ? 'bg-primary/8 text-primary'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
               )}
-            />
-            Settings
-          </Link>
-        </div>
+            >
+              <Settings
+                className={cn(
+                  'h-4 w-4 shrink-0',
+                  pathname.startsWith('/settings') ? 'text-primary' : 'text-slate-400 group-hover:text-slate-600'
+                )}
+              />
+              Settings
+            </Link>
+          </div>
+        )}
       </nav>
 
       {/* User footer */}

@@ -64,3 +64,52 @@ export async function getLibrarySeatsInUse() {
 
   return ((data ?? []) as any[]).map((r: any) => r.seat_number as string)
 }
+
+export interface SeatOccupancyData {
+  totalSeats: number
+  occupiedSeats: { seatNumber: string; memberName: string; memberId: string }[]
+  vacantSeatNumbers: string[]
+  unassignedMembers: { id: string; name: string }[]
+}
+
+export async function getLibrarySeatOccupancy(): Promise<SeatOccupancyData> {
+  const supabase = await createClient()
+
+  // Fetch total seats from settings
+  const { data: settings } = await (supabase.from('app_settings') as any)
+    .select('total_library_seats')
+    .limit(1)
+    .single()
+
+  const totalSeats: number = settings?.total_library_seats ?? 50
+
+  // Fetch active members with their seat assignments
+  const { data: members } = await (supabase.from('library_members') as any)
+    .select('id, name, seat_number')
+    .eq('status', 'active')
+
+  const activeMembers = (members ?? []) as { id: string; name: string; seat_number: string | null }[]
+
+  // Separate assigned and unassigned
+  const occupiedSeats = activeMembers
+    .filter(m => m.seat_number)
+    .map(m => ({ seatNumber: m.seat_number!, memberName: m.name, memberId: m.id }))
+
+  const unassignedMembers = activeMembers
+    .filter(m => !m.seat_number)
+    .map(m => ({ id: m.id, name: m.name }))
+
+  // Build set of occupied seat numbers
+  const occupiedSet = new Set(occupiedSeats.map(s => s.seatNumber))
+
+  // Generate all seat numbers (1..totalSeats) and find vacant ones
+  const vacantSeatNumbers: string[] = []
+  for (let i = 1; i <= totalSeats; i++) {
+    const num = String(i)
+    if (!occupiedSet.has(num)) {
+      vacantSeatNumbers.push(num)
+    }
+  }
+
+  return { totalSeats, occupiedSeats, vacantSeatNumbers, unassignedMembers }
+}
