@@ -95,6 +95,8 @@ export interface PortalComplaintRow {
   priority:        'low' | 'medium' | 'high' | 'urgent'
   status:          'open' | 'in_progress' | 'resolved'
   resolution_note: string | null
+  resolved_at:     string | null
+  updated_at:      string
   created_at:      string
 }
 
@@ -102,7 +104,7 @@ export async function getPortalComplaints(studentId: string): Promise<PortalComp
   const supabase = await createClient()
 
   const { data } = await (supabase.from('complaints') as any)
-    .select('id, subject, description, priority, status, resolution_note, created_at')
+    .select('id, subject, description, priority, status, resolution_note, resolved_at, updated_at, created_at')
     .eq('student_id', studentId)
     .order('created_at', { ascending: false })
 

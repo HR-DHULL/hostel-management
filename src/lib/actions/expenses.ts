@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, requireRole } from '@/lib/supabase/server'
 import type { ExpenseCategory } from '@/lib/queries/expenses'
 
 type ExpenseInsert = {
@@ -13,6 +13,7 @@ type ExpenseInsert = {
 }
 
 export async function createExpense(data: ExpenseInsert) {
+  await requireRole('owner', 'staff')
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -26,6 +27,7 @@ export async function createExpense(data: ExpenseInsert) {
 }
 
 export async function updateExpense(id: string, data: Partial<ExpenseInsert>) {
+  await requireRole('owner', 'staff')
   const supabase = await createClient()
 
   const { error } = await (supabase.from('expenses') as any)
@@ -37,6 +39,7 @@ export async function updateExpense(id: string, data: Partial<ExpenseInsert>) {
 }
 
 export async function deleteExpense(id: string) {
+  await requireRole('owner')
   const supabase = await createClient()
 
   const { error } = await (supabase.from('expenses') as any)

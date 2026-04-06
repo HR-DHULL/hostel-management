@@ -1,9 +1,10 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, requireRole } from '@/lib/supabase/server'
 
 export async function createHostel(name: string, description?: string) {
+  await requireRole('owner')
   const supabase = await createClient()
   const { error } = await (supabase.from('hostels') as any)
     .insert({ name, description: description || null, is_active: true })
@@ -13,6 +14,7 @@ export async function createHostel(name: string, description?: string) {
 }
 
 export async function updateHostel(id: string, name: string, description?: string) {
+  await requireRole('owner')
   const supabase = await createClient()
   const { error } = await (supabase.from('hostels') as any)
     .update({ name, description: description || null })
@@ -23,6 +25,7 @@ export async function updateHostel(id: string, name: string, description?: strin
 }
 
 export async function deleteHostel(id: string) {
+  await requireRole('owner')
   const supabase = await createClient()
   const { error } = await (supabase.from('hostels') as any).delete().eq('id', id)
   if (error) throw new Error(error.message)
@@ -31,6 +34,7 @@ export async function deleteHostel(id: string) {
 }
 
 export async function createRoom(hostelId: string, roomNumber: string, capacity: number) {
+  await requireRole('owner', 'staff')
   const supabase = await createClient()
   const { error } = await (supabase.from('rooms') as any)
     .insert({ hostel_id: hostelId, room_number: roomNumber, capacity, is_active: true })
@@ -40,6 +44,7 @@ export async function createRoom(hostelId: string, roomNumber: string, capacity:
 }
 
 export async function updateRoom(id: string, roomNumber: string, capacity: number) {
+  await requireRole('owner', 'staff')
   const supabase = await createClient()
   const { error } = await (supabase.from('rooms') as any)
     .update({ room_number: roomNumber, capacity })
@@ -50,6 +55,7 @@ export async function updateRoom(id: string, roomNumber: string, capacity: numbe
 }
 
 export async function deleteRoom(id: string) {
+  await requireRole('owner')
   const supabase = await createClient()
   const { error } = await (supabase.from('rooms') as any).delete().eq('id', id)
   if (error) throw new Error(error.message)

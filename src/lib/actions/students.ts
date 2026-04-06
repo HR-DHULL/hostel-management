@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, requireRole, logAudit } from '@/lib/supabase/server'
 
 type StudentInsert = {
   name: string
@@ -22,6 +22,7 @@ type StudentInsert = {
 type AnyRecord = Record<string, any>
 
 export async function createStudent(data: StudentInsert) {
+  await requireRole('owner', 'staff')
   const supabase = await createClient()
 
   const { data: student, error } = await (supabase
@@ -32,11 +33,13 @@ export async function createStudent(data: StudentInsert) {
 
   if (error) throw new Error(error.message)
 
+  await logAudit({ action: 'create', module: 'hostel', entity_name: data.name, entity_id: student?.id })
   revalidatePath('/hostel')
   return student
 }
 
 export async function updateStudent(id: string, data: Partial<StudentInsert>) {
+  await requireRole('owner', 'staff')
   const supabase = await createClient()
 
   const { error } = await (supabase.from('hostel_students') as any)
@@ -50,19 +53,23 @@ export async function updateStudent(id: string, data: Partial<StudentInsert>) {
 }
 
 export async function exitStudent(id: string, exitDate: string) {
+  await requireRole('owner', 'staff')
   const supabase = await createClient()
 
+  const { data: s } = await (supabase.from('hostel_students') as any).select('name').eq('id', id).single()
   const { error } = await (supabase.from('hostel_students') as any)
     .update({ status: 'exited', exit_date: exitDate })
     .eq('id', id)
 
   if (error) throw new Error(error.message)
 
+  await logAudit({ action: 'update', module: 'hostel', entity_name: (s as any)?.name, entity_id: id, details: { event: 'exit', exit_date: exitDate } })
   revalidatePath('/hostel')
   revalidatePath(`/hostel/${id}`)
 }
 
 export async function deleteStudent(id: string) {
+  await requireRole('owner')
   const supabase = await createClient()
 
   // Get full record first for audit log
@@ -87,10 +94,12 @@ export async function deleteStudent(id: string) {
 
   if (error) throw new Error(error.message)
 
+  await logAudit({ action: 'delete', module: 'hostel', entity_id: id, details: { table: 'hostel_students' } })
   revalidatePath('/hostel')
 }
 
 export async function grantLeave(studentId: string, fromDate: string, toDate: string | null, reason: string) {
+  await requireRole('owner', 'staff')
   const supabase = await createClient()
 
   // End any current active leave
@@ -115,6 +124,7 @@ export async function grantLeave(studentId: string, fromDate: string, toDate: st
 }
 
 export async function endLeave(leaveId: string, studentId: string) {
+  await requireRole('owner', 'staff')
   const supabase = await createClient()
 
   const { error } = await (supabase.from('leaves') as any)

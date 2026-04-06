@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Building2, BookOpen, UtensilsCrossed, IndianRupee, AlertTriangle, Clock, MessageSquare, Receipt } from 'lucide-react'
+import { Building2, BookOpen, UtensilsCrossed, IndianRupee, AlertTriangle, Clock, MessageSquare, Receipt, TrendingUp } from 'lucide-react'
 import { Topbar } from '@/components/layout/Topbar'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { FeeChart } from '@/components/dashboard/FeeChart'
@@ -26,6 +26,7 @@ async function getDashboardData() {
     { data: messFeesData },
     { data: complaintsData },
     { data: expensesData },
+    { data: recentPayments },
   ] = await Promise.all([
     supabase.from('hostel_students').select('*', { count: 'exact', head: true }).eq('status', 'active'),
     supabase.from('library_members').select('*', { count: 'exact', head: true }).eq('status', 'active'),
@@ -37,6 +38,7 @@ async function getDashboardData() {
     (supabase.from('expenses') as any).select('amount')
       .gte('expense_date', `${year}-${String(month).padStart(2, '0')}-01`)
       .lte('expense_date', new Date(year, month, 0).toISOString().split('T')[0]),
+    (supabase as any).from('payment_log').select('id, module, amount, mode, paid_at, notes').order('paid_at', { ascending: false }).limit(6),
   ])
 
   const hostelFees  = (hostelFeesData  ?? []) as Tables<'hostel_fees'>[]
@@ -50,6 +52,8 @@ async function getDashboardData() {
   const overdue          = hostelFees.filter(f => f.status === 'overdue').length
   const openComplaints   = (complaintsData ?? []).length
   const monthExpenses    = ((expensesData ?? []) as any[]).reduce((s, e) => s + Number(e.amount), 0)
+  const collectedTotal   = collectedHostel + collectedLibrary + collectedMess
+  const netIncome        = collectedTotal - monthExpenses
 
   // 6-month trend
   const trend = await buildTrend(supabase, month, year)
@@ -58,14 +62,16 @@ async function getDashboardData() {
     hostelCount: hostelCount ?? 0,
     libraryCount: libraryCount ?? 0,
     messCount: messCount ?? 0,
-    collectedTotal: collectedHostel + collectedLibrary + collectedMess,
+    collectedTotal,
     outstanding,
     overdue,
     openComplaints,
     monthExpenses,
+    netIncome,
     month,
     year,
     trend,
+    recentPayments: (recentPayments ?? []) as any[],
   }
 }
 
@@ -133,11 +139,12 @@ export default async function DashboardPage() {
           <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">
             Fee Summary — {monthLabel}
           </h2>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <StatCard title="Collected"       value={formatCurrency(d.collectedTotal)} subtitle="All modules"     icon={IndianRupee}   accent="success" />
-            <StatCard title="Outstanding"     value={formatCurrency(d.outstanding)}    subtitle="Hostel pending"  icon={Clock}         accent="warning" />
-            <StatCard title="Overdue Fees"    value={d.overdue}                        subtitle="Past due date"   icon={AlertTriangle} accent="danger" />
-            <StatCard title="Month Expenses"  value={formatCurrency(d.monthExpenses)}  subtitle="Total spent"     icon={Receipt}       accent="danger" />
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+            <StatCard title="Collected"      value={formatCurrency(d.collectedTotal)} subtitle="All modules"    icon={IndianRupee}   accent="success" />
+            <StatCard title="Net Income"     value={formatCurrency(d.netIncome)}      subtitle="After expenses" icon={TrendingUp}    accent={d.netIncome >= 0 ? 'success' : 'danger'} />
+            <StatCard title="Outstanding"    value={formatCurrency(d.outstanding)}    subtitle="Hostel pending" icon={Clock}         accent="warning" />
+            <StatCard title="Overdue Fees"   value={d.overdue}                        subtitle="Past due date"  icon={AlertTriangle} accent="danger" />
+            <StatCard title="Month Expenses" value={formatCurrency(d.monthExpenses)}  subtitle="Total spent"    icon={Receipt}       accent="danger" />
           </div>
         </div>
 
@@ -156,6 +163,38 @@ export default async function DashboardPage() {
           </div>
           <FeeChart data={d.trend} />
         </div>
+
+        {/* Recent payments */}
+        {d.recentPayments.length > 0 && (
+          <div className="rounded-lg border border-border bg-white overflow-hidden">
+            <div className="px-5 py-3 border-b border-border">
+              <h3 className="text-sm font-semibold text-slate-900">Recent Payments</h3>
+            </div>
+            <div className="divide-y divide-border">
+              {d.recentPayments.map((p: any) => (
+                <div key={p.id} className="flex items-center justify-between px-5 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-green-50">
+                      <IndianRupee className="h-3.5 w-3.5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-slate-900 capitalize">
+                        {p.module} fee{p.notes ? ` · ${p.notes}` : ''}
+                      </p>
+                      <p className="text-[11px] text-slate-400">
+                        {new Date(p.paid_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        {' · '}{p.mode?.replace('_', ' ')}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-sm font-semibold text-green-600 tabular-nums">
+                    +{formatCurrency(Number(p.amount))}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Quick links */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

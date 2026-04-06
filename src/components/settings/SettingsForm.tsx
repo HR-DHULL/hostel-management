@@ -162,14 +162,17 @@ export function SettingsForm({ settings }: { settings: SettingsRow | null }) {
       <div>
         <h2 className="text-sm font-semibold text-slate-900 mb-1">Fee Reminders</h2>
         <p className="text-xs text-slate-500 mb-4">
-          WhatsApp template for fee reminders. Use <code className="bg-slate-100 px-1 rounded text-xs">{`{name}`}</code>,{' '}
-          <code className="bg-slate-100 px-1 rounded text-xs">{`{amount}`}</code>,{' '}
-          <code className="bg-slate-100 px-1 rounded text-xs">{`{month}`}</code>,{' '}
-          <code className="bg-slate-100 px-1 rounded text-xs">{`{date}`}</code> as placeholders.
+          Configure WhatsApp and email reminders for fee payments.
         </p>
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="wa_template_fee_reminder">WhatsApp message template</Label>
+            <p className="text-xs text-slate-400">
+              Use <code className="bg-slate-100 px-1 rounded text-xs">{`{name}`}</code>,{' '}
+              <code className="bg-slate-100 px-1 rounded text-xs">{`{amount}`}</code>,{' '}
+              <code className="bg-slate-100 px-1 rounded text-xs">{`{month}`}</code>,{' '}
+              <code className="bg-slate-100 px-1 rounded text-xs">{`{date}`}</code> as placeholders.
+            </p>
             <Textarea
               id="wa_template_fee_reminder"
               name="wa_template_fee_reminder"
@@ -177,6 +180,19 @@ export function SettingsForm({ settings }: { settings: SettingsRow | null }) {
               rows={3}
             />
           </div>
+
+          <Separator />
+
+          <div className="space-y-1.5">
+            <Label>Email Reminders</Label>
+            <div className="rounded-md border border-blue-100 bg-blue-50/50 px-3 py-2.5">
+              <p className="text-xs text-blue-700 leading-relaxed">
+                Email reminders are sent via Gmail SMTP. You can send reminders from the fee page using the <strong>Email reminder</strong> button (per student) or <strong>Email all</strong> (bulk).
+                A payment receipt email is also automatically sent when a payment is recorded — if the member has an email address on file.
+              </p>
+            </div>
+          </div>
+
           <div className="space-y-1.5">
             <Label htmlFor="reminder_days">Remind N days before due date</Label>
             <Input id="reminder_days" name="reminder_days" type="number" min="0" max="30" defaultValue={settings?.reminder_days ?? 3} className="w-32" />

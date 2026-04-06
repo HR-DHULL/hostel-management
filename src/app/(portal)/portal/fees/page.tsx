@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Printer, AlertCircle } from 'lucide-react'
+import { Printer, Download } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
 import { FeeStatusBadge } from '@/components/shared/StatusBadge'
@@ -26,9 +26,21 @@ export default async function PortalFeesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900">My Fees</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Complete fee history and receipts</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-slate-900">My Fees</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Complete fee history and receipts</p>
+        </div>
+        {fees.length > 0 && (
+          <a
+            href={`/api/portal/fee-statement?studentId=${profile.linked_student_id}`}
+            download
+            className="flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Download statement
+          </a>
+        )}
       </div>
 
       {/* Summary */}

@@ -31,14 +31,12 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Public paths that don't require auth
-  const isReceiptRoute = pathname.startsWith('/fees/receipt/')
   const isAuthRoute  = pathname.startsWith('/auth/')   // /auth/callback, /auth/set-password
-  const isLoginPath  = pathname === '/login' || pathname === '/portal/login'
+  const isLoginPath  = pathname === '/login' || pathname === '/portal/login' || pathname === '/register'
   const isPortalPath = pathname.startsWith('/portal')
   const isAdminPath  = !isPortalPath && !isLoginPath && !isAuthRoute && pathname !== '/'
 
-  // Receipts and auth routes are always public
-  if (isReceiptRoute) return supabaseResponse
+  // Auth routes (callback, set-password) are always public
   if (isAuthRoute) return supabaseResponse
 
   // Not authenticated
@@ -57,7 +55,12 @@ export async function middleware(request: NextRequest) {
     .eq('id', user.id)
     .single()
 
-  const role = profile?.role ?? 'staff'
+  // Fail closed — if profile missing, kick to login
+  const role = profile?.role
+  if (!role) {
+    const loginPath = isPortalPath ? '/portal/login' : '/login'
+    return NextResponse.redirect(new URL(loginPath, request.url))
+  }
 
   // Redirect students away from admin routes
   if (role === 'student' && isAdminPath) {

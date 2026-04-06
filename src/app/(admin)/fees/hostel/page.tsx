@@ -5,6 +5,7 @@ import { Topbar } from '@/components/layout/Topbar'
 import { Button } from '@/components/ui/button'
 import { MonthNavigator } from '@/components/fees/MonthNavigator'
 import { FeeTable } from '@/components/fees/FeeTable'
+import { ResetMonthButton } from '@/components/fees/ResetMonthButton'
 import { getOrGenerateFees, getMonthSummary } from '@/lib/queries/fees'
 import { createClient } from '@/lib/supabase/server'
 import { formatCurrency } from '@/lib/utils'
@@ -61,7 +62,12 @@ export default async function HostelFeesPage({ searchParams }: PageProps) {
             </Link>
           </div>
         }
-        actions={<MonthNavigator month={month} year={year} />}
+        actions={
+          <div className="flex items-center gap-2">
+            <ResetMonthButton module="hostel" month={month} year={year} />
+            <MonthNavigator month={month} year={year} />
+          </div>
+        }
       />
 
       <div className="p-6 space-y-5">

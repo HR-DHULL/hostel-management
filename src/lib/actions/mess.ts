@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, requireRole } from '@/lib/supabase/server'
 
 type MemberInsert = {
   name: string
@@ -21,6 +21,7 @@ type MemberInsert = {
 type AnyRecord = Record<string, any>
 
 export async function createMessMember(data: MemberInsert) {
+  await requireRole('owner', 'staff')
   const supabase = await createClient()
 
   const { data: member, error } = await (supabase.from('mess_members') as any)
@@ -35,6 +36,7 @@ export async function createMessMember(data: MemberInsert) {
 }
 
 export async function updateMessMember(id: string, data: Partial<MemberInsert>) {
+  await requireRole('owner', 'staff')
   const supabase = await createClient()
 
   const { error } = await (supabase.from('mess_members') as any)
@@ -48,6 +50,7 @@ export async function updateMessMember(id: string, data: Partial<MemberInsert>) 
 }
 
 export async function exitMessMember(id: string, exitDate: string) {
+  await requireRole('owner', 'staff')
   const supabase = await createClient()
 
   const { error } = await (supabase.from('mess_members') as any)
@@ -61,6 +64,7 @@ export async function exitMessMember(id: string, exitDate: string) {
 }
 
 export async function deleteMessMember(id: string) {
+  await requireRole('owner')
   const supabase = await createClient()
 
   const { data: member } = await (supabase.from('mess_members') as any)
@@ -93,6 +97,7 @@ export async function toggleAttendance(
   attDate: string,
   present: boolean
 ) {
+  await requireRole('owner', 'staff')
   const supabase = await createClient()
 
   // Check existing
@@ -117,6 +122,7 @@ export async function toggleAttendance(
 
 /** Mark all active members present for a date */
 export async function markAllPresent(attDate: string, memberIds: string[]) {
+  await requireRole('owner', 'staff')
   const supabase = await createClient()
 
   for (const memberId of memberIds) {

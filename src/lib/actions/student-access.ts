@@ -1,13 +1,14 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createAdminClient } from '@/lib/supabase/server'
+import { createAdminClient, requireRole } from '@/lib/supabase/server'
 
 export async function inviteStudentAccess(
   studentId: string,
   email: string,
   displayName: string,
 ) {
+  await requireRole('owner', 'staff')
   const supabase = await createAdminClient()
 
   // Invite student — this creates auth.users record + triggers profile creation
@@ -29,6 +30,7 @@ export async function inviteStudentAccess(
 }
 
 export async function revokeStudentAccess(studentId: string, userId: string) {
+  await requireRole('owner', 'staff')
   const supabase = await createAdminClient()
   const { error } = await supabase.auth.admin.deleteUser(userId)
   if (error) throw new Error(error.message)

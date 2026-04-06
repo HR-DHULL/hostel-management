@@ -1,7 +1,6 @@
 'use client'
 
-import { Bell } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { NotificationBell } from './NotificationBell'
 
 interface TopbarProps {
   title: string
@@ -21,11 +20,7 @@ export function Topbar({ title, description, actions }: TopbarProps) {
 
       <div className="flex items-center gap-2">
         {actions}
-        <Button variant="ghost" size="icon" className="relative text-slate-500">
-          <Bell className="h-4 w-4" />
-          {/* Notification dot — shown when there are alerts */}
-          <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-danger" />
-        </Button>
+        <NotificationBell />
       </div>
     </header>
   )

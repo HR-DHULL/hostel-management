@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, requireRole } from '@/lib/supabase/server'
 
 /** Normalises various date formats → YYYY-MM-DD */
 function parseDate(raw: string): string {
@@ -81,6 +81,7 @@ type ImportResult = { count: number; error?: string }
 
 export async function importStudents(rows: StudentImportRow[]): Promise<ImportResult> {
   try {
+    await requireRole('owner', 'staff')
     const supabase = await createClient()
     const records = rows.map(r => ({
       ...r,
@@ -99,6 +100,7 @@ export async function importStudents(rows: StudentImportRow[]): Promise<ImportRe
 
 export async function importLibraryMembers(rows: LibraryImportRow[]): Promise<ImportResult> {
   try {
+    await requireRole('owner', 'staff')
     const supabase = await createClient()
     const records = rows.map(r => ({
       ...r,
@@ -117,6 +119,7 @@ export async function importLibraryMembers(rows: LibraryImportRow[]): Promise<Im
 
 export async function importMessMembers(rows: MessImportRow[]): Promise<ImportResult> {
   try {
+    await requireRole('owner', 'staff')
     const supabase = await createClient()
     const records = rows.map(r => ({
       ...r,

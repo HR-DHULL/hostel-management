@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { StudentStatusBadge } from '@/components/shared/StatusBadge'
 import { Badge } from '@/components/ui/badge'
 import { AddMessMemberButton } from '@/components/mess/AddMessMemberButton'
+import { MessFilter } from '@/components/mess/MessFilter'
 import { Pagination } from '@/components/shared/Pagination'
 import { ImportModal } from '@/components/shared/ImportModal'
 import { getMessMembers } from '@/lib/queries/mess'
@@ -43,6 +44,7 @@ export default async function MessPage({ searchParams }: PageProps) {
         description={`${total} member${total !== 1 ? 's' : ''}`}
         actions={
           <div className="flex items-center gap-2">
+            <MessFilter />
             <Link href="/mess/attendance">
               <Button size="sm" variant="outline" className="gap-1">
                 <CalendarDays className="h-3.5 w-3.5" />

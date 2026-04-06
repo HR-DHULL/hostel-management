@@ -4,13 +4,14 @@ import { ChevronLeft, Phone, Mail, Calendar, BookOpen, Building2, IndianRupee } 
 import Link from 'next/link'
 import { Topbar } from '@/components/layout/Topbar'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { StudentStatusBadge } from '@/components/shared/StatusBadge'
+import { StudentStatusBadge, FeeStatusBadge } from '@/components/shared/StatusBadge'
 import { StudentActions } from '@/components/hostel/StudentActions'
 import { LeaveManager } from '@/components/hostel/LeaveManager'
 import { IdCardModal } from '@/components/shared/IdCardModal'
 import { StudentPortalAccessButton } from '@/components/hostel/StudentPortalAccessButton'
 import { StudentServicesSection } from '@/components/hostel/StudentServicesSection'
 import { getStudentById, getStudentLeaves, getHostels, getStudentPortalUser, getStudentLinkedServices } from '@/lib/queries/students'
+import { getStudentFeeHistory } from '@/lib/queries/fees'
 import { formatCurrency, getInitials } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/server'
 
@@ -25,9 +26,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function StudentProfilePage({ params }: PageProps) {
   const supabase = await createClient()
-  const [student, hostels] = await Promise.all([
+  const [student, hostels, feeHistory] = await Promise.all([
     getStudentById(params.id),
     getHostels(),
+    getStudentFeeHistory(params.id),
   ])
 
   if (!student) notFound()
@@ -181,15 +183,62 @@ export default async function StudentProfilePage({ params }: PageProps) {
             <div className="rounded-lg border border-border bg-white p-5">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-medium text-slate-900">Fee history</h3>
-                <Link href={`/fees/hostel?studentId=${student.id}`} className="text-xs text-primary hover:underline">
-                  View all fees →
+                <Link href="/fees/hostel" className="text-xs text-primary hover:underline">
+                  Go to Fees →
                 </Link>
               </div>
-              <p className="text-sm text-slate-400 py-6 text-center">
-                All fee records are managed in the{' '}
-                <Link href="/fees/hostel" className="text-primary hover:underline">Hostel Fees</Link>{' '}
-                section.
-              </p>
+
+              {feeHistory.length === 0 ? (
+                <p className="text-sm text-slate-400 py-6 text-center">No fee records yet.</p>
+              ) : (
+                <>
+                  {/* Summary row */}
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    {[
+                      { label: 'Total billed', value: feeHistory.reduce((s, f) => s + Number(f.net_amount), 0) },
+                      { label: 'Total paid',   value: feeHistory.reduce((s, f) => s + Number(f.paid_amount), 0), green: true },
+                      { label: 'Outstanding',  value: feeHistory.reduce((s, f) => s + Number(f.balance), 0),    red: true },
+                    ].map(({ label, value, green, red }) => (
+                      <div key={label} className="rounded-lg bg-slate-50 border border-border px-3 py-2.5">
+                        <p className="text-xs text-slate-500">{label}</p>
+                        <p className={`text-sm font-semibold mt-0.5 ${green ? 'text-success' : red && value > 0 ? 'text-danger' : 'text-slate-900'}`}>
+                          {formatCurrency(value)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Table */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border text-xs text-slate-500">
+                          <th className="pb-2 text-left font-medium">Month</th>
+                          <th className="pb-2 text-right font-medium">Billed</th>
+                          <th className="pb-2 text-right font-medium">Paid</th>
+                          <th className="pb-2 text-right font-medium">Balance</th>
+                          <th className="pb-2 text-left font-medium pl-3">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {feeHistory.map(f => (
+                          <tr key={f.id} className="hover:bg-slate-50/60">
+                            <td className="py-2.5 text-slate-700 font-medium">
+                              {new Date(f.year, f.month - 1).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
+                            </td>
+                            <td className="py-2.5 text-right text-slate-600">{formatCurrency(Number(f.net_amount))}</td>
+                            <td className="py-2.5 text-right text-success font-medium">{formatCurrency(Number(f.paid_amount))}</td>
+                            <td className="py-2.5 text-right text-slate-600">{formatCurrency(Number(f.balance))}</td>
+                            <td className="py-2.5 pl-3">
+                              <FeeStatusBadge status={f.status} />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
             </div>
           </TabsContent>
 

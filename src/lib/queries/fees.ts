@@ -26,6 +26,7 @@ export interface FeeRow {
   member_id: string   // maps to student_id or member_id depending on module
   member_name: string
   member_phone: string
+  member_email: string | null
   month: number
   year: number
   due_date: string
@@ -51,7 +52,7 @@ export async function getOrGenerateFees(
 
   // 1. Get all active members
   const { data: members } = await (supabase.from(memberTable) as any)
-    .select('id, name, phone, monthly_fee_amount, fee_day, discount, joining_date')
+    .select('id, name, phone, email, monthly_fee_amount, fee_day, discount, joining_date')
     .eq('status', 'active')
 
   const activeMembers = (members ?? []) as {
@@ -118,7 +119,7 @@ export async function getOrGenerateFees(
 
   // 5. Fetch all fees for this month with member info
   const { data: allFees } = await (supabase.from(feeTable) as any)
-    .select(`*, ${memberTable}(name, phone)`)
+    .select(`*, ${memberTable}(name, phone, email)`)
     .eq('month', month)
     .eq('year', year)
     .order('due_date')
@@ -128,6 +129,7 @@ export async function getOrGenerateFees(
     member_id: f[fk],
     member_name: f[memberTable]?.name ?? 'Unknown',
     member_phone: f[memberTable]?.phone ?? '',
+    member_email: f[memberTable]?.email ?? null,
     month: f.month,
     year: f.year,
     due_date: f.due_date,
@@ -141,8 +143,8 @@ export async function getOrGenerateFees(
   }))
 }
 
-export async function getFeeById(module: FeeModule, feeId: string, injectedClient?: any) {
-  const supabase = injectedClient ?? await createClient()
+export async function getFeeById(module: FeeModule, feeId: string) {
+  const supabase = await createClient()
   const feeTable    = FEE_TABLE[module]
   const memberTable = MEMBER_TABLE[module]
   const fk          = MEMBER_FK[module]
@@ -177,8 +179,8 @@ export async function getFeeById(module: FeeModule, feeId: string, injectedClien
   }
 }
 
-export async function getPaymentHistory(module: FeeModule, feeId: string, injectedClient?: any) {
-  const supabase = injectedClient ?? await createClient()
+export async function getPaymentHistory(module: FeeModule, feeId: string) {
+  const supabase = await createClient()
 
   const { data } = await (supabase.from('payment_log') as any)
     .select('*')
@@ -209,4 +211,27 @@ export async function getMonthSummary(module: FeeModule, month: number, year: nu
     collected:   fees.reduce((s, f) => s + Number(f.paid_amount), 0),
     outstanding: fees.reduce((s, f) => s + (Number(f.net_amount) - Number(f.paid_amount)), 0),
   }
+}
+
+export interface StudentFeeHistoryRow {
+  id: string
+  month: number
+  year: number
+  due_date: string
+  net_amount: number
+  paid_amount: number
+  balance: number
+  status: 'pending' | 'partial' | 'paid' | 'overdue'
+  notes: string | null
+}
+
+/** All hostel fee records for a single student, newest first */
+export async function getStudentFeeHistory(studentId: string): Promise<StudentFeeHistoryRow[]> {
+  const supabase = await createClient()
+  const { data } = await (supabase.from('hostel_fees') as any)
+    .select('id, month, year, due_date, net_amount, paid_amount, balance, status, notes')
+    .eq('student_id', studentId)
+    .order('year',  { ascending: false })
+    .order('month', { ascending: false })
+  return (data ?? []) as StudentFeeHistoryRow[]
 }

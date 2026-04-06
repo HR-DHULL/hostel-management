@@ -17,13 +17,13 @@ export default async function AdminLayout({
   }
 
   // Get profile for name/role
-  const { data: profileData } = await supabase
+  const { data: profileData } = await (supabase as any)
     .from('profiles')
-    .select('*')
+    .select('id, role, display_name, is_active, permissions')
     .eq('id', user.id)
     .single()
 
-  const profile = profileData as Tables<'profiles'> | null
+  const profile = profileData as (Tables<'profiles'> & { permissions?: Record<string, boolean> }) | null
 
   if (profile?.role === 'student') {
     redirect('/portal/dashboard')
@@ -44,6 +44,7 @@ export default async function AdminLayout({
         logoUrl={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/logos/logo`}
         userRole={profile?.role}
         userName={profile?.display_name}
+        permissions={profile?.role === 'staff' ? (profile?.permissions ?? {}) : undefined}
       />
       <div
         className="flex flex-1 flex-col overflow-hidden"

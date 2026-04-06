@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { FeeStatusBadge } from '@/components/shared/StatusBadge'
-import { recordPayment, recordAdvancePayment, updateFeeAmount } from '@/lib/actions/fees'
+import { recordPayment, recordAdvancePayment, updateFeeAmount, correctPaidAmount } from '@/lib/actions/fees'
 import { formatCurrency } from '@/lib/utils'
 import type { FeeModule, FeeRow } from '@/lib/queries/fees'
 
@@ -31,7 +31,7 @@ const PAYMENT_MODES = [
 
 export function PaymentModal({ open, onClose, fee, module }: PaymentModalProps) {
   const router = useRouter()
-  const [tab, setTab]         = useState<'single' | 'advance'>('single')
+  const [tab, setTab]         = useState<'single' | 'advance' | 'correct'>(fee.status === 'paid' ? 'correct' : 'single')
   const [amount, setAmount]   = useState(String(fee.balance > 0 ? fee.balance : fee.net_amount))
   const [mode, setMode]       = useState('cash')
   const [notes, setNotes]     = useState('')
@@ -39,6 +39,25 @@ export function PaymentModal({ open, onClose, fee, module }: PaymentModalProps) 
   const [advMonths, setAdvMonths] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
+
+  // Correct paid amount
+  const [correctAmt, setCorrectAmt] = useState(String(fee.paid_amount))
+
+  async function handleCorrectPayment() {
+    const amt = Number(correctAmt)
+    if (amt < 0) { setError('Amount cannot be negative'); return }
+    setLoading(true)
+    setError('')
+    try {
+      await correctPaidAmount(module, fee.id, amt)
+      onClose()
+      router.refresh()
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Something went wrong')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Inline fee amount edit
   const [editingAmount, setEditingAmount] = useState(false)
@@ -99,7 +118,7 @@ export function PaymentModal({ open, onClose, fee, module }: PaymentModalProps) 
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Record payment — {fee.member_name}</DialogTitle>
+          <DialogTitle>{fee.status === 'paid' ? 'Edit payment' : 'Record payment'} — {fee.member_name}</DialogTitle>
         </DialogHeader>
 
         {/* Fee summary */}
@@ -165,17 +184,17 @@ export function PaymentModal({ open, onClose, fee, module }: PaymentModalProps) 
 
         {/* Tabs */}
         <div className="flex rounded-md border border-border overflow-hidden">
-          {(['single', 'advance'] as const).map(t => (
+          {(['single', 'advance', 'correct'] as const).map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
                 tab === t
-                  ? 'bg-primary text-white'
+                  ? t === 'correct' ? 'bg-warning text-white' : 'bg-primary text-white'
                   : 'bg-white text-slate-600 hover:bg-slate-50'
               }`}
             >
-              {t === 'single' ? 'This month' : 'Advance payment'}
+              {t === 'single' ? 'This month' : t === 'advance' ? 'Advance' : 'Correct'}
             </button>
           ))}
         </div>
@@ -268,6 +287,29 @@ export function PaymentModal({ open, onClose, fee, module }: PaymentModalProps) 
           </div>
         )}
 
+        {tab === 'correct' && (
+          <div className="space-y-3">
+            <div className="rounded-lg bg-warning/8 border border-warning/30 px-3 py-2.5 text-sm text-warning-dark">
+              This will overwrite the existing paid amount and recalculate the status. Old payment logs for this record will be cleared.
+            </div>
+            <div className="space-y-1.5">
+              <Label>Set paid amount to (₹)</Label>
+              <Input
+                type="number"
+                min="0"
+                max={fee.net_amount}
+                step="0.01"
+                value={correctAmt}
+                onChange={e => setCorrectAmt(e.target.value)}
+                placeholder="e.g. 2000"
+              />
+              <p className="text-xs text-slate-500">
+                Net payable: {formatCurrency(fee.net_amount)} — Current paid: {formatCurrency(fee.paid_amount)}
+              </p>
+            </div>
+          </div>
+        )}
+
         {error && (
           <p className="rounded-md bg-danger/8 px-3 py-2 text-xs text-danger">{error}</p>
         )}
@@ -275,11 +317,17 @@ export function PaymentModal({ open, onClose, fee, module }: PaymentModalProps) 
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button
-            onClick={tab === 'single' ? handleSinglePayment : handleAdvancePayment}
+            onClick={
+              tab === 'single'  ? handleSinglePayment  :
+              tab === 'advance' ? handleAdvancePayment  :
+              handleCorrectPayment
+            }
             disabled={loading}
+            className={tab === 'correct' ? 'bg-warning hover:bg-warning/90 text-white' : ''}
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {loading ? 'Recording…' : 'Record payment'}
+            {loading ? 'Saving…' :
+              tab === 'correct' ? 'Save correction' : 'Record payment'}
           </Button>
         </div>
       </DialogContent>
