@@ -149,23 +149,31 @@ export async function getFeeById(module: FeeModule, feeId: string) {
   const memberTable = MEMBER_TABLE[module]
   const fk          = MEMBER_FK[module]
 
+  // Each member table has different columns
+  const MEMBER_SELECT: Record<FeeModule, string> = {
+    hostel:  'name, phone, email, room_number, course, joining_date, monthly_fee_amount',
+    library: 'name, phone, email, seat_number, joining_date, monthly_fee_amount',
+    mess:    'name, phone, email, meal_plan, joining_date, monthly_fee_amount',
+  }
+
   const { data } = await (supabase.from(feeTable) as any)
-    .select(`*, ${memberTable}(name, phone, email, room_number, course, joining_date, monthly_fee_amount)`)
+    .select(`*, ${memberTable}(${MEMBER_SELECT[module]})`)
     .eq('id', feeId)
     .single()
 
   if (!data) return null
   const d = data as any
+  const m = d[memberTable]
 
   return {
     id: d.id,
     member_id: d[fk],
-    member_name: d[memberTable]?.name ?? '',
-    member_phone: d[memberTable]?.phone ?? '',
-    member_email: d[memberTable]?.email ?? null,
-    member_room: d[memberTable]?.room_number ?? null,
-    member_course: d[memberTable]?.course ?? null,
-    member_joining_date: d[memberTable]?.joining_date ?? null,
+    member_name: m?.name ?? '',
+    member_phone: m?.phone ?? '',
+    member_email: m?.email ?? null,
+    member_room: m?.room_number ?? m?.seat_number ?? null,
+    member_course: m?.course ?? m?.meal_plan ?? null,
+    member_joining_date: m?.joining_date ?? null,
     month: d.month as number,
     year: d.year as number,
     due_date: d.due_date as string,
