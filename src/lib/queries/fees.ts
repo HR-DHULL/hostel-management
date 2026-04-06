@@ -141,8 +141,8 @@ export async function getOrGenerateFees(
   }))
 }
 
-export async function getFeeById(module: FeeModule, feeId: string) {
-  const supabase = await createClient()
+export async function getFeeById(module: FeeModule, feeId: string, injectedClient?: any) {
+  const supabase = injectedClient ?? await createClient()
   const feeTable    = FEE_TABLE[module]
   const memberTable = MEMBER_TABLE[module]
   const fk          = MEMBER_FK[module]
@@ -177,8 +177,8 @@ export async function getFeeById(module: FeeModule, feeId: string) {
   }
 }
 
-export async function getPaymentHistory(module: FeeModule, feeId: string) {
-  const supabase = await createClient()
+export async function getPaymentHistory(module: FeeModule, feeId: string, injectedClient?: any) {
+  const supabase = injectedClient ?? await createClient()
 
   const { data } = await (supabase.from('payment_log') as any)
     .select('*')

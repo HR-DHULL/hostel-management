@@ -31,12 +31,14 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Public paths that don't require auth
+  const isReceiptRoute = pathname.startsWith('/fees/receipt/')
   const isAuthRoute  = pathname.startsWith('/auth/')   // /auth/callback, /auth/set-password
   const isLoginPath  = pathname === '/login' || pathname === '/portal/login'
   const isPortalPath = pathname.startsWith('/portal')
   const isAdminPath  = !isPortalPath && !isLoginPath && !isAuthRoute && pathname !== '/'
 
-  // Auth routes (callback, set-password) are always public
+  // Receipts and auth routes are always public
+  if (isReceiptRoute) return supabaseResponse
   if (isAuthRoute) return supabaseResponse
 
   // Not authenticated

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getFeeById, getPaymentHistory } from '@/lib/queries/fees'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { formatCurrency, MONTH_NAMES } from '@/lib/utils'
 import type { FeeModule } from '@/lib/queries/fees'
 import { PrintButton } from './PrintButton'
@@ -17,10 +17,10 @@ interface PageProps {
 export default async function ReceiptPage({ params, searchParams }: PageProps) {
   const module = (searchParams.module ?? 'hostel') as FeeModule
 
-  const supabase = await createClient()
+  const supabase = await createAdminClient()
   const [fee, payments, settingsResult] = await Promise.all([
-    getFeeById(module, params.feeId),
-    getPaymentHistory(module, params.feeId),
+    getFeeById(module, params.feeId, supabase),
+    getPaymentHistory(module, params.feeId, supabase),
     (supabase.from('app_settings') as any)
       .select('inst_name, inst_address, inst_phone')
       .limit(1)

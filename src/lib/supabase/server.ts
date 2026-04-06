@@ -37,3 +37,20 @@ export async function createAdminClient() {
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 }
+
+/** Require the current user to have a specific role, throws otherwise */
+export async function requireRole(role: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const { data: profile } = (await (supabase
+    .from('profiles') as any)
+    .select('role')
+    .eq('id', user.id)
+    .single()) as { data: { role: string } | null }
+
+  if (!profile || profile.role !== role) {
+    throw new Error(`Requires ${role} role`)
+  }
+}
