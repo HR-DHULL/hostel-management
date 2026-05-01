@@ -1,13 +1,10 @@
 import type { Metadata } from 'next'
 import { Topbar } from '@/components/layout/Topbar'
-import { Badge } from '@/components/ui/badge'
 import { AddExpenseButton } from '@/components/expenses/AddExpenseButton'
 import { ExpenseActions } from '@/components/expenses/ExpenseActions'
 import { Pagination } from '@/components/shared/Pagination'
 import { getExpenses, getExpenseSummary } from '@/lib/queries/expenses'
-import { getTeamMembers } from '@/lib/queries/team-members'
 import { formatCurrency, MONTH_NAMES } from '@/lib/utils'
-import { Package } from 'lucide-react'
 
 export const metadata: Metadata = { title: 'Expenses' }
 export const dynamic = 'force-dynamic'
@@ -32,10 +29,9 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
   const month    = Number(searchParams.month ?? now.getMonth() + 1)
   const year     = Number(searchParams.year  ?? now.getFullYear())
 
-  const [{ expenses, total, pageSize }, summary, teamMembers] = await Promise.all([
+  const [{ expenses, total, pageSize }, summary] = await Promise.all([
     getExpenses({ page, category, month, year }),
     getExpenseSummary(month, year),
-    getTeamMembers(),
   ])
 
   const totalPages = Math.ceil(total / pageSize)
@@ -45,7 +41,7 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
       <Topbar
         title="Expenses"
         description={`${MONTH_NAMES[month - 1]} ${year}`}
-        actions={<AddExpenseButton teamMembers={teamMembers} />}
+        actions={<AddExpenseButton />}
       />
 
       <div className="p-6 space-y-5">
@@ -78,18 +74,7 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
               {expenses.map(exp => (
                 <tr key={exp.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-slate-900">{exp.description}</p>
-                      {exp.is_asset_purchase && (
-                        <span
-                          title="Asset purchase"
-                          className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700"
-                        >
-                          <Package className="h-3 w-3" />
-                          Asset
-                        </span>
-                      )}
-                    </div>
+                    <p className="font-medium text-slate-900">{exp.description}</p>
                     {exp.given_to && (
                       <p className="text-xs text-slate-500 mt-0.5">For: {exp.given_to}</p>
                     )}
@@ -107,7 +92,7 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
                     {formatCurrency(exp.amount)}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <ExpenseActions expense={exp} teamMembers={teamMembers} />
+                    <ExpenseActions expense={exp} />
                   </td>
                 </tr>
               ))}

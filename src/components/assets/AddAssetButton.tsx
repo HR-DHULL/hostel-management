@@ -4,24 +4,25 @@ import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { ExpenseForm } from './ExpenseForm'
+import { AssetForm } from './AssetForm'
+import type { TeamMember } from '@/lib/queries/team-members'
 
-export function AddExpenseButton() {
+export function AddAssetButton({ teamMembers }: { teamMembers: TeamMember[] }) {
   const [open, setOpen] = useState(false)
 
   return (
     <>
       <Button size="sm" onClick={() => setOpen(true)}>
         <Plus className="h-4 w-4" />
-        Add expense
+        Add asset
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add expense</DialogTitle>
+            <DialogTitle>Add asset</DialogTitle>
           </DialogHeader>
-          <ExpenseForm onSuccess={() => setOpen(false)} />
+          <AssetForm teamMembers={teamMembers} onSuccess={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
     </>

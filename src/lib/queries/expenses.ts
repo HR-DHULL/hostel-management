@@ -5,15 +5,14 @@ const PAGE_SIZE = 25
 export type ExpenseCategory = 'maintenance' | 'utilities' | 'staff' | 'food' | 'misc' | 'other'
 
 export interface ExpenseRow {
-  id:                string
-  description:       string
-  amount:            number
-  category:          ExpenseCategory
-  expense_date:      string
-  notes:             string | null
-  given_to:          string | null
-  is_asset_purchase: boolean
-  created_at:        string
+  id:           string
+  description:  string
+  amount:       number
+  category:     ExpenseCategory
+  expense_date: string
+  notes:        string | null
+  given_to:     string | null
+  created_at:   string
 }
 
 export async function getExpenses({

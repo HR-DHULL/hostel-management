@@ -7,13 +7,13 @@ export type AssetStatus   = 'in_use' | 'in_storage' | 'retired' | 'lost'
 
 export interface AssetRow {
   id:              string
-  expense_id:      string | null
   name:            string
   category:        AssetCategory
   serial_number:   string | null
   status:          AssetStatus
   purchase_amount: number | null
   purchase_date:   string | null
+  vendor:          string | null
   notes:           string | null
   created_at:      string
 }
@@ -35,10 +35,6 @@ export interface AssetWithHolder extends AssetRow {
   assigned_at:          string | null
 }
 
-/**
- * Resolve "who is holding this right now" by joining the active assignment
- * (returned_at IS NULL) with the profile or falling back to the captured name.
- */
 export async function getAssets({
   page = 1,
   status,
@@ -54,9 +50,6 @@ export async function getAssets({
   const from = (page - 1) * PAGE_SIZE
   const to   = from + PAGE_SIZE - 1
 
-  // Pull assets with their active assignment + the joined profile name.
-  // PostgREST embeds: asset_assignments!asset_id pulls the related rows,
-  // we filter the embed to only active (returned_at IS NULL) assignments.
   let query = (supabase.from('assets') as any)
     .select(`
       *,
@@ -81,13 +74,13 @@ export async function getAssets({
     const active = (row.asset_assignments ?? []).find((a: any) => a.returned_at === null)
     return {
       id:              row.id,
-      expense_id:      row.expense_id,
       name:            row.name,
       category:        row.category,
       serial_number:   row.serial_number,
       status:          row.status,
       purchase_amount: row.purchase_amount,
       purchase_date:   row.purchase_date,
+      vendor:          row.vendor,
       notes:           row.notes,
       created_at:      row.created_at,
       current_holder_name:
@@ -100,7 +93,6 @@ export async function getAssets({
   return { assets, total: count ?? 0, pageSize: PAGE_SIZE }
 }
 
-/** Full assignment history for one asset, newest first. */
 export async function getAssetAssignments(assetId: string) {
   const supabase = await createClient()
 
@@ -118,23 +110,10 @@ export async function getAssetAssignments(assetId: string) {
   }))
 }
 
-/** Used by the expense detail UI to show "this purchase created N assets". */
-export async function getAssetsByExpense(expenseId: string): Promise<AssetRow[]> {
-  const supabase = await createClient()
-
-  const { data } = await (supabase.from('assets') as any)
-    .select('*')
-    .eq('expense_id', expenseId)
-    .order('created_at', { ascending: true })
-
-  return (data ?? []) as AssetRow[]
-}
-
 export async function getAssetSummary() {
   const supabase = await createClient()
 
-  const { data } = await (supabase.from('assets') as any)
-    .select('status')
+  const { data } = await (supabase.from('assets') as any).select('status')
 
   const rows = (data ?? []) as { status: AssetStatus }[]
   const total = rows.length

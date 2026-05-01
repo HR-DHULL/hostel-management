@@ -3,6 +3,7 @@ import { Topbar } from '@/components/layout/Topbar'
 import { Pagination } from '@/components/shared/Pagination'
 import { AssetActions } from '@/components/assets/AssetActions'
 import { AssetFilters } from '@/components/assets/AssetFilters'
+import { AddAssetButton } from '@/components/assets/AddAssetButton'
 import { getAssets, getAssetSummary } from '@/lib/queries/assets'
 import { getTeamMembers } from '@/lib/queries/team-members'
 import { createClient } from '@/lib/supabase/server'
@@ -63,6 +64,7 @@ export default async function AssetsPage({ searchParams }: PageProps) {
       <Topbar
         title="Assets"
         description="Durable items issued to team members"
+        actions={<AddAssetButton teamMembers={teamMembers} />}
       />
 
       <div className="p-6 space-y-5">
@@ -136,7 +138,7 @@ export default async function AssetsPage({ searchParams }: PageProps) {
 
           {assets.length === 0 && (
             <div className="py-12 text-center text-sm text-slate-400">
-              No assets yet. Tick &quot;asset purchase&quot; when adding an expense to start tracking.
+              No assets yet. Click &quot;Add asset&quot; to register a durable item.
             </div>
           )}
         </div>

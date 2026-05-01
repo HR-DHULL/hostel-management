@@ -5,11 +5,10 @@ import { createClient, requireRole } from '@/lib/supabase/server'
 import type { AssetCategory, AssetStatus } from '@/lib/queries/assets'
 
 // ----------------------------------------------------------------------
-// Shared types
+// Types
 // ----------------------------------------------------------------------
 
 export interface AssignmentInput {
-  /** Either profile_id (existing team member) OR name (new joiner / contractor) */
   assigned_to_profile_id?: string | null
   assigned_to_name?:       string | null
   assigned_to_phone?:      string | null
@@ -17,15 +16,23 @@ export interface AssignmentInput {
 }
 
 export interface AssetCreateInput {
-  expense_id?:     string | null
-  name:            string
-  category:        AssetCategory
-  serial_number?:  string | null
+  name:             string
+  category:         AssetCategory
+  serial_number?:   string | null
   purchase_amount?: number | null
-  purchase_date?:  string | null
-  notes?:          string | null
+  purchase_date?:   string | null
+  vendor?:          string | null
+  notes?:           string | null
   /** Optional: assign immediately on creation */
-  assignment?:     AssignmentInput
+  assignment?:      AssignmentInput
+}
+
+export interface AssetUpdateInput {
+  name?:          string
+  category?:      AssetCategory
+  serial_number?: string | null
+  vendor?:        string | null
+  notes?:         string | null
 }
 
 // ----------------------------------------------------------------------
@@ -51,13 +58,13 @@ export async function createAsset(input: AssetCreateInput) {
 
   const { data: asset, error } = await (supabase.from('assets') as any)
     .insert({
-      expense_id:      input.expense_id ?? null,
       name:            input.name,
       category:        input.category,
-      serial_number:   input.serial_number ?? null,
+      serial_number:   input.serial_number?.trim() || null,
       purchase_amount: input.purchase_amount ?? null,
       purchase_date:   input.purchase_date ?? null,
-      notes:           input.notes ?? null,
+      vendor:          input.vendor?.trim() || null,
+      notes:           input.notes?.trim() || null,
       created_by:      user?.id ?? null,
     })
     .select('id')
@@ -77,7 +84,7 @@ export async function createAsset(input: AssetCreateInput) {
       created_by:             user?.id ?? null,
     })
     if (assignErr) {
-      // Roll back the asset row so we don't leave an orphan
+      // Roll back so we don't leave an orphan
       await (supabase.from('assets') as any).delete().eq('id', assetId)
       throw new Error(assignErr.message)
     }
@@ -93,9 +100,7 @@ export async function createAsset(input: AssetCreateInput) {
 }
 
 // ----------------------------------------------------------------------
-// REASSIGN: return current holder, then assign new one
-// Sequential (not transactional). On insert failure, asset ends up in
-// storage state which is recoverable from the UI.
+// REASSIGN: return current holder, then assign new one (sequential)
 // ----------------------------------------------------------------------
 
 export async function reassignAsset(assetId: string, next: AssignmentInput) {
@@ -105,7 +110,6 @@ export async function reassignAsset(assetId: string, next: AssignmentInput) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // 1. Mark current active assignment as returned
   const { error: returnErr } = await (supabase.from('asset_assignments') as any)
     .update({ returned_at: new Date().toISOString() })
     .eq('asset_id', assetId)
@@ -113,7 +117,6 @@ export async function reassignAsset(assetId: string, next: AssignmentInput) {
 
   if (returnErr) throw new Error(returnErr.message)
 
-  // 2. Insert the new active assignment
   const { error: insertErr } = await (supabase.from('asset_assignments') as any).insert({
     asset_id:               assetId,
     assigned_to_profile_id: next.assigned_to_profile_id ?? null,
@@ -161,7 +164,6 @@ export async function setAssetStatus(assetId: string, status: AssetStatus) {
   await requireRole('owner', 'staff')
   const supabase = await createClient()
 
-  // If retiring or marking lost, also close any active assignment
   if (status === 'retired' || status === 'lost') {
     await (supabase.from('asset_assignments') as any)
       .update({ returned_at: new Date().toISOString() })
@@ -178,24 +180,28 @@ export async function setAssetStatus(assetId: string, status: AssetStatus) {
 }
 
 // ----------------------------------------------------------------------
-// UPDATE asset metadata (name, serial, notes)
+// UPDATE asset metadata
 // ----------------------------------------------------------------------
 
-export async function updateAsset(
-  assetId: string,
-  patch: Partial<Pick<AssetCreateInput, 'name' | 'category' | 'serial_number' | 'notes'>>
-) {
+export async function updateAsset(assetId: string, patch: AssetUpdateInput) {
   await requireRole('owner', 'staff')
   const supabase = await createClient()
 
-  const { error } = await (supabase.from('assets') as any).update(patch).eq('id', assetId)
+  const cleaned = {
+    ...patch,
+    serial_number: patch.serial_number !== undefined ? (patch.serial_number?.trim() || null) : undefined,
+    vendor:        patch.vendor        !== undefined ? (patch.vendor?.trim()        || null) : undefined,
+    notes:         patch.notes         !== undefined ? (patch.notes?.trim()         || null) : undefined,
+  }
+
+  const { error } = await (supabase.from('assets') as any).update(cleaned).eq('id', assetId)
   if (error) throw new Error(error.message)
 
   revalidatePath('/assets')
 }
 
 // ----------------------------------------------------------------------
-// DELETE asset (owner only — wipes assignment history via CASCADE)
+// DELETE asset (owner only)
 // ----------------------------------------------------------------------
 
 export async function deleteAsset(assetId: string) {
