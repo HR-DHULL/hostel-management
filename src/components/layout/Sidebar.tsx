@@ -19,6 +19,7 @@ import {
   BarChart2,
   ClipboardList,
   Armchair,
+  Package,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -34,6 +35,7 @@ const NAV_ITEMS: { label: string; href: string; icon: React.ElementType; permiss
   { label: 'Fees',       href: '/fees/hostel',       icon: Wallet,           permission: 'fees'       },
   { label: 'Complaints', href: '/complaints',        icon: MessageSquare,    permission: 'complaints' },
   { label: 'Expenses',   href: '/expenses',          icon: Receipt,          permission: 'expenses'   },
+  { label: 'Assets',     href: '/assets',            icon: Package,          permission: 'assets'     },
   { label: 'Reports',    href: '/reports',           icon: BarChart2,        permission: 'reports'    },
   { label: 'Audit Log',  href: '/audit-log',         icon: ClipboardList,    permission: 'audit_log'  },
   { label: 'Team',       href: '/settings/team',     icon: Users },

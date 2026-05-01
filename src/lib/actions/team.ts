@@ -9,6 +9,7 @@ export type StaffPermissions = {
   mess?: boolean
   fees?: boolean
   expenses?: boolean
+  assets?: boolean
   complaints?: boolean
   reports?: boolean
   audit_log?: boolean

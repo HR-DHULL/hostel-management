@@ -5,8 +5,9 @@ import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ExpenseForm } from './ExpenseForm'
+import type { TeamMember } from '@/lib/queries/team-members'
 
-export function AddExpenseButton() {
+export function AddExpenseButton({ teamMembers }: { teamMembers: TeamMember[] }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -17,11 +18,11 @@ export function AddExpenseButton() {
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add expense</DialogTitle>
           </DialogHeader>
-          <ExpenseForm onSuccess={() => setOpen(false)} />
+          <ExpenseForm teamMembers={teamMembers} onSuccess={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
     </>

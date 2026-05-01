@@ -17,6 +17,7 @@ const PERMISSION_LABELS: { key: keyof StaffPermissions; label: string }[] = [
   { key: 'mess',      label: 'Mess' },
   { key: 'fees',      label: 'Fees' },
   { key: 'expenses',  label: 'Expenses' },
+  { key: 'assets',    label: 'Assets' },
   { key: 'complaints',label: 'Complaints' },
   { key: 'reports',   label: 'Reports' },
   { key: 'audit_log', label: 'Audit Log' },

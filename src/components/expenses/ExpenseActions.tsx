@@ -13,8 +13,15 @@ import {
 import { ExpenseForm } from './ExpenseForm'
 import { deleteExpense } from '@/lib/actions/expenses'
 import type { ExpenseRow } from '@/lib/queries/expenses'
+import type { TeamMember } from '@/lib/queries/team-members'
 
-export function ExpenseActions({ expense }: { expense: ExpenseRow }) {
+export function ExpenseActions({
+  expense,
+  teamMembers,
+}: {
+  expense:     ExpenseRow
+  teamMembers: TeamMember[]
+}) {
   const router = useRouter()
   const [editOpen,   setEditOpen]   = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -52,7 +59,11 @@ export function ExpenseActions({ expense }: { expense: ExpenseRow }) {
           <DialogHeader>
             <DialogTitle>Edit expense</DialogTitle>
           </DialogHeader>
-          <ExpenseForm expense={expense} onSuccess={() => setEditOpen(false)} />
+          <ExpenseForm
+            expense={expense}
+            teamMembers={teamMembers}
+            onSuccess={() => setEditOpen(false)}
+          />
         </DialogContent>
       </Dialog>
 
