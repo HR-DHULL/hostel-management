@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Topbar } from '@/components/layout/Topbar'
 import { AddExpenseButton } from '@/components/expenses/AddExpenseButton'
 import { ExpenseActions } from '@/components/expenses/ExpenseActions'
+import { MonthNavigator } from '@/components/fees/MonthNavigator'
 import { Pagination } from '@/components/shared/Pagination'
 import { getExpenses, getExpenseSummary } from '@/lib/queries/expenses'
 import { formatCurrency, MONTH_NAMES } from '@/lib/utils'
@@ -41,7 +42,12 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
       <Topbar
         title="Expenses"
         description={`${MONTH_NAMES[month - 1]} ${year}`}
-        actions={<AddExpenseButton />}
+        actions={
+          <div className="flex items-center gap-2">
+            <MonthNavigator month={month} year={year} />
+            <AddExpenseButton />
+          </div>
+        }
       />
 
       <div className="p-6 space-y-5">
