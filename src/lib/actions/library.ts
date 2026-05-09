@@ -59,8 +59,19 @@ export async function exitLibraryMember(id: string, exitDate: string) {
 
   if (error) throw new Error(error.message)
 
+  // Delete unpaid library fees for months strictly after the exit month.
+  const d = new Date(exitDate)
+  const exitYear  = d.getFullYear()
+  const exitMonth = d.getMonth() + 1
+  await (supabase.from('library_fees') as any)
+    .delete()
+    .eq('member_id', id)
+    .eq('paid_amount', 0)
+    .or(`year.gt.${exitYear},and(year.eq.${exitYear},month.gt.${exitMonth})`)
+
   revalidatePath('/library')
   revalidatePath(`/library/${id}`)
+  revalidatePath('/fees/library')
 }
 
 export async function deleteLibraryMember(id: string) {

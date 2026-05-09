@@ -63,9 +63,21 @@ export async function exitStudent(id: string, exitDate: string) {
 
   if (error) throw new Error(error.message)
 
+  // Delete unpaid fees for months strictly after the exit month.
+  // Past + current-month fees stay (audit trail). Future phantom rows go.
+  const d = new Date(exitDate)
+  const exitYear  = d.getFullYear()
+  const exitMonth = d.getMonth() + 1
+  await (supabase.from('hostel_fees') as any)
+    .delete()
+    .eq('student_id', id)
+    .eq('paid_amount', 0)
+    .or(`year.gt.${exitYear},and(year.eq.${exitYear},month.gt.${exitMonth})`)
+
   await logAudit({ action: 'update', module: 'hostel', entity_name: (s as any)?.name, entity_id: id, details: { event: 'exit', exit_date: exitDate } })
   revalidatePath('/hostel')
   revalidatePath(`/hostel/${id}`)
+  revalidatePath('/fees/hostel')
 }
 
 export async function deleteStudent(id: string) {
