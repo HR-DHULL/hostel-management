@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Tables } from '@/lib/supabase/helpers'
+import { isFeeVisibleForExit } from '@/lib/fee-visibility'
 
 export type FeeModule = 'hostel' | 'library' | 'mess'
 
@@ -119,12 +120,14 @@ export async function getOrGenerateFees(
 
   // 5. Fetch all fees for this month with member info
   const { data: allFees } = await (supabase.from(feeTable) as any)
-    .select(`*, ${memberTable}(name, phone, email)`)
+    .select(`*, ${memberTable}(name, phone, email, status, exit_date)`)
     .eq('month', month)
     .eq('year', year)
     .order('due_date')
 
-  return ((allFees ?? []) as any[]).map((f: any) => ({
+  return ((allFees ?? []) as any[])
+    .filter((f: any) => isFeeVisibleForExit(f[memberTable], { year, month }))
+    .map((f: any) => ({
     id: f.id,
     member_id: f[fk],
     member_name: f[memberTable]?.name ?? 'Unknown',
@@ -200,15 +203,18 @@ export async function getPaymentHistory(module: FeeModule, feeId: string) {
 }
 
 export async function getMonthSummary(module: FeeModule, month: number, year: number) {
-  const supabase = await createClient()
-  const feeTable = FEE_TABLE[module]
+  const supabase    = await createClient()
+  const feeTable    = FEE_TABLE[module]
+  const memberTable = MEMBER_TABLE[module]
 
   const { data } = await (supabase.from(feeTable) as any)
-    .select('status, net_amount, paid_amount')
+    .select(`status, net_amount, paid_amount, ${memberTable}(status, exit_date)`)
     .eq('month', month)
     .eq('year', year)
 
-  const fees = (data ?? []) as any[]
+  // Exclude fees from post-exit months so summary numbers match the visible table.
+  const fees = ((data ?? []) as any[])
+    .filter((f: any) => isFeeVisibleForExit(f[memberTable], { year, month }))
 
   return {
     total:       fees.length,

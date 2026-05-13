@@ -6,6 +6,7 @@ import { StatCard } from '@/components/dashboard/StatCard'
 import { FeeChart } from '@/components/dashboard/FeeChart'
 import { createClient } from '@/lib/supabase/server'
 import { formatCurrency, getMonthName, MONTH_NAMES } from '@/lib/utils'
+import { isFeeVisibleForExit } from '@/lib/fee-visibility'
 import type { Tables } from '@/lib/supabase/helpers'
 
 export const metadata: Metadata = { title: 'Dashboard' }
@@ -31,9 +32,9 @@ async function getDashboardData() {
     supabase.from('hostel_students').select('*', { count: 'exact', head: true }).eq('status', 'active'),
     supabase.from('library_members').select('*', { count: 'exact', head: true }).eq('status', 'active'),
     supabase.from('mess_members').select('*',    { count: 'exact', head: true }).eq('status', 'active'),
-    supabase.from('hostel_fees').select('paid_amount, balance, status').eq('month', month).eq('year', year),
-    supabase.from('library_fees').select('paid_amount').eq('month', month).eq('year', year),
-    supabase.from('mess_fees').select('paid_amount').eq('month', month).eq('year', year),
+    supabase.from('hostel_fees').select('paid_amount, balance, status, hostel_students(status, exit_date)').eq('month', month).eq('year', year),
+    supabase.from('library_fees').select('paid_amount, library_members(status, exit_date)').eq('month', month).eq('year', year),
+    supabase.from('mess_fees').select('paid_amount, mess_members(status, exit_date)').eq('month', month).eq('year', year),
     (supabase.from('complaints') as any).select('status').neq('status', 'resolved'),
     (supabase.from('expenses') as any).select('amount')
       .gte('expense_date', `${year}-${String(month).padStart(2, '0')}-01`)
@@ -41,9 +42,11 @@ async function getDashboardData() {
     (supabase as any).from('payment_log').select('id, module, amount, mode, paid_at, notes').order('paid_at', { ascending: false }).limit(6),
   ])
 
-  const hostelFees  = (hostelFeesData  ?? []) as Tables<'hostel_fees'>[]
-  const libraryFees = (libraryFeesData ?? []) as any[]
-  const messFees    = (messFeesData    ?? []) as any[]
+  // Hide fees for members whose exit_date is before this month.
+  const periodFee = { year, month }
+  const hostelFees  = ((hostelFeesData  ?? []) as any[]).filter(f => isFeeVisibleForExit(f.hostel_students,  periodFee)) as Tables<'hostel_fees'>[]
+  const libraryFees = ((libraryFeesData ?? []) as any[]).filter(f => isFeeVisibleForExit(f.library_members, periodFee))
+  const messFees    = ((messFeesData    ?? []) as any[]).filter(f => isFeeVisibleForExit(f.mess_members,    periodFee))
 
   const collectedHostel  = hostelFees.reduce((s, f)  => s + Number(f.paid_amount), 0)
   const collectedLibrary = libraryFees.reduce((s, f) => s + Number(f.paid_amount), 0)
@@ -84,18 +87,21 @@ async function buildTrend(supabase: any, currentMonth: number, currentYear: numb
     if (m <= 0) { m += 12; y-- }
 
     const [h, l, ms] = await Promise.all([
-      supabase.from('hostel_fees').select('paid_amount').eq('month', m).eq('year', y),
-      supabase.from('library_fees').select('paid_amount').eq('month', m).eq('year', y),
-      supabase.from('mess_fees').select('paid_amount').eq('month', m).eq('year', y),
+      supabase.from('hostel_fees').select('paid_amount, hostel_students(status, exit_date)').eq('month', m).eq('year', y),
+      supabase.from('library_fees').select('paid_amount, library_members(status, exit_date)').eq('month', m).eq('year', y),
+      supabase.from('mess_fees').select('paid_amount, mess_members(status, exit_date)').eq('month', m).eq('year', y),
     ])
 
+    const periodFee = { year: y, month: m }
+    const visible = (arr: any[], key: string) =>
+      arr.filter(f => isFeeVisibleForExit(f[key], periodFee))
     const sum = (arr: any[]) => arr.reduce((s, f) => s + Number(f.paid_amount), 0)
 
     points.push({
       month:   MONTH_NAMES[m - 1].slice(0, 3),
-      hostel:  sum((h.data ?? []) as any[]),
-      library: sum((l.data ?? []) as any[]),
-      mess:    sum((ms.data ?? []) as any[]),
+      hostel:  sum(visible((h.data  ?? []) as any[], 'hostel_students')),
+      library: sum(visible((l.data  ?? []) as any[], 'library_members')),
+      mess:    sum(visible((ms.data ?? []) as any[], 'mess_members')),
     })
   }
 

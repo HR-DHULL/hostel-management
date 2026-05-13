@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { isFeeVisibleForExit } from '@/lib/fee-visibility'
 
 export interface ModuleSummary {
   billed:      number
@@ -59,13 +60,13 @@ export async function getMonthlyReport(month: number, year: number): Promise<Mon
     { data: expensesData },
   ] = await Promise.all([
     (supabase.from('hostel_fees') as any)
-      .select('id, net_amount, paid_amount, balance, status, due_date, student_id, hostel_students(name, phone)')
+      .select('id, net_amount, paid_amount, balance, status, due_date, student_id, hostel_students(name, phone, status, exit_date)')
       .eq('month', month).eq('year', year),
     (supabase.from('library_fees') as any)
-      .select('id, net_amount, paid_amount, balance, status, due_date, member_id, library_members(name, phone)')
+      .select('id, net_amount, paid_amount, balance, status, due_date, member_id, library_members(name, phone, status, exit_date)')
       .eq('month', month).eq('year', year),
     (supabase.from('mess_fees') as any)
-      .select('id, net_amount, paid_amount, balance, status, due_date, member_id, mess_members(name, phone)')
+      .select('id, net_amount, paid_amount, balance, status, due_date, member_id, mess_members(name, phone, status, exit_date)')
       .eq('month', month).eq('year', year),
     (supabase.from('expenses') as any)
       .select('amount')
@@ -73,9 +74,11 @@ export async function getMonthlyReport(month: number, year: number): Promise<Mon
       .lte('expense_date', lastDay),
   ])
 
-  const hf = (hostelFees  ?? []) as any[]
-  const lf = (libraryFees ?? []) as any[]
-  const mf = (messFees    ?? []) as any[]
+  // Hide fees for members exited before this period (exit-month + before stay visible).
+  const periodFee = { year, month }
+  const hf = ((hostelFees  ?? []) as any[]).filter(f => isFeeVisibleForExit(f.hostel_students, periodFee))
+  const lf = ((libraryFees ?? []) as any[]).filter(f => isFeeVisibleForExit(f.library_members, periodFee))
+  const mf = ((messFees    ?? []) as any[]).filter(f => isFeeVisibleForExit(f.mess_members,    periodFee))
 
   // Build unpaid list across all modules
   const unpaid: UnpaidRow[] = [
