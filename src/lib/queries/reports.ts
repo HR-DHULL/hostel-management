@@ -74,11 +74,10 @@ export async function getMonthlyReport(month: number, year: number): Promise<Mon
       .lte('expense_date', lastDay),
   ])
 
-  // Hide fees for members exited before this period (exit-month + before stay visible).
-  const periodFee = { year, month }
-  const hf = ((hostelFees  ?? []) as any[]).filter(f => isFeeVisibleForExit(f.hostel_students, periodFee))
-  const lf = ((libraryFees ?? []) as any[]).filter(f => isFeeVisibleForExit(f.library_members, periodFee))
-  const mf = ((messFees    ?? []) as any[]).filter(f => isFeeVisibleForExit(f.mess_members,    periodFee))
+  // Exited members: keep their paid fees (collection history), hide unpaid dues.
+  const hf = ((hostelFees  ?? []) as any[]).filter(f => isFeeVisibleForExit(f.hostel_students, f))
+  const lf = ((libraryFees ?? []) as any[]).filter(f => isFeeVisibleForExit(f.library_members, f))
+  const mf = ((messFees    ?? []) as any[]).filter(f => isFeeVisibleForExit(f.mess_members,    f))
 
   // Build unpaid list across all modules
   const unpaid: UnpaidRow[] = [

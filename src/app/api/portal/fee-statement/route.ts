@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     .select('inst_name').single()
 
   const rows = ((fees ?? []) as any[])
-    .filter((f: any) => isFeeVisibleForExit(f.hostel_students, { year: f.year, month: f.month }))
+    .filter((f: any) => isFeeVisibleForExit(f.hostel_students, f))
   const s    = (student ?? {}) as any
   const inst = (settings as any)?.inst_name ?? 'Institute'
 

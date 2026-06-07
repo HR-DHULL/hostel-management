@@ -42,11 +42,10 @@ async function getDashboardData() {
     (supabase as any).from('payment_log').select('id, module, amount, mode, paid_at, notes').order('paid_at', { ascending: false }).limit(6),
   ])
 
-  // Hide fees for members whose exit_date is before this month.
-  const periodFee = { year, month }
-  const hostelFees  = ((hostelFeesData  ?? []) as any[]).filter(f => isFeeVisibleForExit(f.hostel_students,  periodFee)) as Tables<'hostel_fees'>[]
-  const libraryFees = ((libraryFeesData ?? []) as any[]).filter(f => isFeeVisibleForExit(f.library_members, periodFee))
-  const messFees    = ((messFeesData    ?? []) as any[]).filter(f => isFeeVisibleForExit(f.mess_members,    periodFee))
+  // Exited members: keep their paid fees (collection history), hide unpaid dues.
+  const hostelFees  = ((hostelFeesData  ?? []) as any[]).filter(f => isFeeVisibleForExit(f.hostel_students,  f)) as Tables<'hostel_fees'>[]
+  const libraryFees = ((libraryFeesData ?? []) as any[]).filter(f => isFeeVisibleForExit(f.library_members, f))
+  const messFees    = ((messFeesData    ?? []) as any[]).filter(f => isFeeVisibleForExit(f.mess_members,    f))
 
   const collectedHostel  = hostelFees.reduce((s, f)  => s + Number(f.paid_amount), 0)
   const collectedLibrary = libraryFees.reduce((s, f) => s + Number(f.paid_amount), 0)
@@ -92,9 +91,8 @@ async function buildTrend(supabase: any, currentMonth: number, currentYear: numb
       supabase.from('mess_fees').select('paid_amount, mess_members(status, exit_date)').eq('month', m).eq('year', y),
     ])
 
-    const periodFee = { year: y, month: m }
     const visible = (arr: any[], key: string) =>
-      arr.filter(f => isFeeVisibleForExit(f[key], periodFee))
+      arr.filter(f => isFeeVisibleForExit(f[key], f))
     const sum = (arr: any[]) => arr.reduce((s, f) => s + Number(f.paid_amount), 0)
 
     points.push({

@@ -78,7 +78,7 @@ export async function getPortalFees(studentId: string): Promise<PortalFeeRow[]> 
     .order('month', { ascending: false })
 
   return ((data ?? []) as any[])
-    .filter((f: any) => isFeeVisibleForExit(f.hostel_students, { year: f.year, month: f.month }))
+    .filter((f: any) => isFeeVisibleForExit(f.hostel_students, f))
     .map((f: any) => ({
     id:          f.id,
     month:       f.month,

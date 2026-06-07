@@ -126,7 +126,7 @@ export async function getOrGenerateFees(
     .order('due_date')
 
   return ((allFees ?? []) as any[])
-    .filter((f: any) => isFeeVisibleForExit(f[memberTable], { year, month }))
+    .filter((f: any) => isFeeVisibleForExit(f[memberTable], f))
     .map((f: any) => ({
     id: f.id,
     member_id: f[fk],
@@ -214,7 +214,7 @@ export async function getMonthSummary(module: FeeModule, month: number, year: nu
 
   // Exclude fees from post-exit months so summary numbers match the visible table.
   const fees = ((data ?? []) as any[])
-    .filter((f: any) => isFeeVisibleForExit(f[memberTable], { year, month }))
+    .filter((f: any) => isFeeVisibleForExit(f[memberTable], f))
 
   return {
     total:       fees.length,
@@ -248,6 +248,6 @@ export async function getStudentFeeHistory(studentId: string): Promise<StudentFe
     .order('year',  { ascending: false })
     .order('month', { ascending: false })
   return ((data ?? []) as any[])
-    .filter((f: any) => isFeeVisibleForExit(f.hostel_students, { year: f.year, month: f.month }))
+    .filter((f: any) => isFeeVisibleForExit(f.hostel_students, f))
     .map(({ hostel_students, ...row }: any) => row) as StudentFeeHistoryRow[]
 }
