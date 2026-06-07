@@ -10,16 +10,27 @@
  *     don't know when they exited. Treat exit as "earlier than today"
  *     and hide every fee whose period is the current month or later.
  *     Past months stay visible so paid history is preserved.
+ *
+ * NOTE: the `member` argument is the embedded record from a Supabase join
+ * (e.g. `hostel_students(status, exit_date)`). Depending on how PostgREST
+ * resolves the relationship it can arrive as a single object OR as a
+ * one-element array. If it arrives as an array and we read `.status` off the
+ * array, it is `undefined`, the member looks "active", and EVERY exited
+ * member leaks through. We normalise the shape here so callers can't be
+ * silently defeated by it.
  */
+type EmbeddedMember = { status?: string | null; exit_date?: string | null }
+
 export function isFeeVisibleForExit(
-  member: { status?: string | null; exit_date?: string | null } | null | undefined,
+  member: EmbeddedMember | EmbeddedMember[] | null | undefined,
   fee: { year: number; month: number }
 ): boolean {
-  if (!member) return true
-  if (member.status !== 'exited') return true
+  const m = Array.isArray(member) ? member[0] : member
+  if (!m) return true
+  if (m.status !== 'exited') return true
 
-  if (member.exit_date) {
-    const d = new Date(member.exit_date)
+  if (m.exit_date) {
+    const d = new Date(m.exit_date)
     const exitYear  = d.getFullYear()
     const exitMonth = d.getMonth() + 1
     if (fee.year < exitYear) return true
