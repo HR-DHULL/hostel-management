@@ -243,9 +243,11 @@ export interface StudentFeeHistoryRow {
 export async function getStudentFeeHistory(studentId: string): Promise<StudentFeeHistoryRow[]> {
   const supabase = await createClient()
   const { data } = await (supabase.from('hostel_fees') as any)
-    .select('id, month, year, due_date, net_amount, paid_amount, balance, status, notes')
+    .select('id, month, year, due_date, net_amount, paid_amount, balance, status, notes, hostel_students(status, exit_date)')
     .eq('student_id', studentId)
     .order('year',  { ascending: false })
     .order('month', { ascending: false })
-  return (data ?? []) as StudentFeeHistoryRow[]
+  return ((data ?? []) as any[])
+    .filter((f: any) => isFeeVisibleForExit(f.hostel_students, { year: f.year, month: f.month }))
+    .map(({ hostel_students, ...row }: any) => row) as StudentFeeHistoryRow[]
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { MONTH_NAMES } from '@/lib/utils'
+import { isFeeVisibleForExit } from '@/lib/fee-visibility'
 
 export async function GET(request: NextRequest) {
   const supabase   = await createClient()
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
     .single()
 
   const { data: fees } = await (supabase.from('hostel_fees') as any)
-    .select('month, year, due_date, net_amount, paid_amount, balance, status')
+    .select('month, year, due_date, net_amount, paid_amount, balance, status, hostel_students(status, exit_date)')
     .eq('student_id', studentId)
     .order('year', { ascending: false })
     .order('month', { ascending: false })
@@ -35,7 +36,8 @@ export async function GET(request: NextRequest) {
   const { data: settings } = await (supabase.from('app_settings') as any)
     .select('inst_name').single()
 
-  const rows = (fees ?? []) as any[]
+  const rows = ((fees ?? []) as any[])
+    .filter((f: any) => isFeeVisibleForExit(f.hostel_students, { year: f.year, month: f.month }))
   const s    = (student ?? {}) as any
   const inst = (settings as any)?.inst_name ?? 'Institute'
 

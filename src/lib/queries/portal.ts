@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { isFeeVisibleForExit } from '@/lib/fee-visibility'
 
 export interface PortalStudent {
   id:                  string
@@ -71,12 +72,14 @@ export async function getPortalFees(studentId: string): Promise<PortalFeeRow[]> 
   const supabase = await createClient()
 
   const { data } = await (supabase.from('hostel_fees') as any)
-    .select('id, month, year, due_date, net_amount, paid_amount, status')
+    .select('id, month, year, due_date, net_amount, paid_amount, status, hostel_students(status, exit_date)')
     .eq('student_id', studentId)
     .order('year',  { ascending: false })
     .order('month', { ascending: false })
 
-  return ((data ?? []) as any[]).map((f: any) => ({
+  return ((data ?? []) as any[])
+    .filter((f: any) => isFeeVisibleForExit(f.hostel_students, { year: f.year, month: f.month }))
+    .map((f: any) => ({
     id:          f.id,
     month:       f.month,
     year:        f.year,
