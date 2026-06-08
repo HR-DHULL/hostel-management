@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { isFeeVisibleForExit } from '@/lib/fee-visibility'
 
 export async function GET() {
   try {
@@ -22,18 +23,24 @@ export async function GET() {
       (supabase as any).from('payment_log').select('id, module, amount, paid_at, notes').order('paid_at', { ascending: false }).limit(5),
     ])
 
-    // Fallback: count overdue directly
+    // Count overdue fees, excluding exited members' dues (same rule used for
+    // the reports, fee pages, and dashboard).
     const [
-      { count: hostelOverdue },
-      { count: libraryOverdue },
-      { count: messOverdue },
+      { data: hostelOv },
+      { data: libraryOv },
+      { data: messOv },
     ] = await Promise.all([
-      (supabase as any).from('hostel_fees').select('*', { count: 'exact', head: true }).eq('status', 'overdue'),
-      (supabase as any).from('library_fees').select('*', { count: 'exact', head: true }).eq('status', 'overdue'),
-      (supabase as any).from('mess_fees').select('*', { count: 'exact', head: true }).eq('status', 'overdue'),
+      (supabase as any).from('hostel_fees').select('paid_amount, hostel_students(status)').eq('status', 'overdue'),
+      (supabase as any).from('library_fees').select('paid_amount, library_members(status)').eq('status', 'overdue'),
+      (supabase as any).from('mess_fees').select('paid_amount, mess_members(status)').eq('status', 'overdue'),
     ])
 
-    const overdueCount   = (hostelOverdue ?? 0) + (libraryOverdue ?? 0) + (messOverdue ?? 0)
+    const countVisible = (rows: any[] | null, key: string) =>
+      (rows ?? []).filter((r: any) => isFeeVisibleForExit(r[key], r)).length
+
+    const overdueCount   = countVisible(hostelOv, 'hostel_students')
+                         + countVisible(libraryOv, 'library_members')
+                         + countVisible(messOv, 'mess_members')
     const complaintCount = (openComplaints ?? []).length
 
     const items: { type: string; title: string; sub: string; time: string; href: string; priority?: string }[] = []
