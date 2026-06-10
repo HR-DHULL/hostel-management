@@ -43,7 +43,7 @@ export function StudentForm({ hostels, student, onSuccess }: StudentFormProps) {
       room_number:          String(fd.get('room_number') ?? '') || undefined,
       joining_date:         String(fd.get('joining_date') ?? ''),
       monthly_fee_amount:   Number(fd.get('monthly_fee_amount') ?? 0),
-      fee_day:              Number(fd.get('fee_day') ?? 5),
+      fee_day:              Math.min(31, Math.max(1, Math.floor(Number(fd.get('fee_day'))) || 5)),
       discount:             Number(fd.get('discount') ?? 0),
       notes:                String(fd.get('notes') ?? '') || undefined,
     }
@@ -136,8 +136,8 @@ export function StudentForm({ hostels, student, onSuccess }: StudentFormProps) {
             defaultValue={student?.monthly_fee_amount ?? 0} required />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="fee_day">Fee day (1–28)</Label>
-          <Input id="fee_day" name="fee_day" type="number" min="1" max="28"
+          <Label htmlFor="fee_day">Fee day (1–31)</Label>
+          <Input id="fee_day" name="fee_day" type="number" min="1" max="31"
             defaultValue={student?.fee_day ?? 5} />
         </div>
         <div className="space-y-1.5">
